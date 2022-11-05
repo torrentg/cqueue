@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "compilerPath": "/usr/lib64/ccache/g++",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerArgs": [
+                "-Wall",
+                "-Wextra",
+                "-Wshadow",
+                "-Wpedantic",
+                "-Wconversion",
+                "-Wsign-conversion",
+                "-Wnull-dereference"
+            ]
+        }
+    ],
+    "version": 4
+}
