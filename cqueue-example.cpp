@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "cqueue.hpp"
 
-// g++ -std=c++20 -o gto::cqueue-example gto::cqueue-example.cpp 
+// g++ -std=c++20 -o cqueue-example cqueue-example.cpp 
 
 static constexpr std::string_view prefix = "  ";
 

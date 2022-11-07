@@ -10,7 +10,6 @@ namespace gto {
 
 /**
  * @brief Circular queue.
- * @details It is a FIFO queue.
  * @details Iterators are invalidated by: push(), push_front(), emplace(), pop(), pop_back(), reset() and clear().
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
