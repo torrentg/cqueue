@@ -10,3 +10,10 @@
     * More `noexcept` are possible
     * Considere to add `constexpr` support
 3. Considere to add `shrink_to_fit` method
+4. Execute profiler
+
+    ```sh
+    g++ -pg -std=c++20 -g -o cqueue-mem cqueue-mem.cpp && \
+    ./cqueue-mem && \
+    gprof ./cqueue-mem gmon.out > cqueue-mem.gmon
+    ```

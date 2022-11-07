@@ -1,6 +1,10 @@
 CXXFLAGS= -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference
 
-all: example tests coverage
+all: example tests coverage mem
+
+mem: cqueue-mem.cpp deque-mem.cpp
+	g++ -std=c++20 -g -o deque-mem deque-mem.cpp
+	g++ -std=c++20 -g -o cqueue-mem cqueue-mem.cpp
 
 example: cqueue-example.cpp
 	g++ -O2 $(CXXFLAGS) -o cqueue-example cqueue-example.cpp
@@ -23,5 +27,9 @@ clean:
 	rm -f cqueue-tests
 	rm -f cqueue-coverage
 	rm -f cqueue-example
+	rm -f cqueue-mem 
+	rm -f deque-mem
 	rm -f *.gcda *.gcno
-	rm -rvf coverage
+	rm -rf coverage
+	rm -f *gmon*
+	rm -f massif*
