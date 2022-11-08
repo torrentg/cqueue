@@ -1,19 +1,20 @@
 #define CATCH_CONFIG_MAIN
 
+#include <limits>
 #include "catch.hpp"
 #include "cqueue.hpp"
 
-using namespace std;
-using namespace gto;
+using std::string;
+using gto::cqueue;
 
 TEST_CASE("cqueue") {
 
   SECTION("max_capacity") {
-    CHECK(cqueue<int>::max_capacity() == 67'108'864);
+    CHECK(cqueue<int>::max_capacity() == std::numeric_limits<std::ptrdiff_t>::max());
   }
 
   SECTION("constructor-exception") {
-    CHECK_THROWS(cqueue<long long>(100'000'000));
+    CHECK_THROWS(cqueue<long long>(std::numeric_limits<std::size_t>::max()));
   }
 
   SECTION("default constructor") {

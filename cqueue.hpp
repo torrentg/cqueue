@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <limits>
 #include <utility>
 #include <concepts>
 #include <algorithm>
@@ -21,19 +22,27 @@ class cqueue {
 
   public: // declarations
 
+    // Aliases  
+    using value_type = T;
+    using reference = value_type &;
+    using const_reference = const value_type &;
+    using pointer = T *;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    //using allocator_type = Allocator;
+    //using const_alloc_reference = const allocator_type&;
+    //using init_list_type = std::initializer_list<T>;
+
     //! cqueue iterator.
     class iterator {
       public:
         using iterator_category = std::random_access_iterator_tag;
-        using difference_type = std::ptrdiff_t;
-        using value_type = T;
-        using pointer = T *;
-        using reference = T &;
       private:
         cqueue<T> *queue = nullptr;
         difference_type pos = 0;
       private:
-        std::size_t cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<std::size_t>(n)); }
+        size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
         difference_type size() const { return static_cast<difference_type>(queue->size()); }
       public:
         explicit iterator(cqueue<T> *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
@@ -63,15 +72,15 @@ class cqueue {
     class const_iterator {
       public:
         using iterator_category = std::random_access_iterator_tag;
-        using difference_type = std::ptrdiff_t;
         using value_type = const T;
         using pointer = const T *;
         using reference = const T &;
+
       private:
         const cqueue<T> *queue = nullptr;
         difference_type pos = 0;
       private:
-        std::size_t cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<std::size_t>(n)); }
+        size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
         difference_type size() const { return static_cast<difference_type>(queue->size()); }
       public:
         explicit const_iterator(const cqueue<T> *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
@@ -100,45 +109,43 @@ class cqueue {
   private: // static members
 
     //! Capacity increase factor.
-    static constexpr std::size_t GROWTH_FACTOR = 2;
+    static constexpr size_type GROWTH_FACTOR = 2;
     //! Default initial capacity (power of 2).
-    static constexpr std::size_t DEFAULT_RESERVED = 8;
-    //! Max capacity (user-defined power of 2).
-    static constexpr std::size_t MAX_CAPACITY = 67'108'864;
+    static constexpr size_type DEFAULT_RESERVED = 8;
 
   private: // members
 
     //! Buffer.
     std::unique_ptr<T[]> mData;
     //! Buffer size.
-    std::size_t mReserved = 0;
+    size_type mReserved = 0;
     //! Maximum number of elements (always > 0).
-    std::size_t mCapacity = 0;
+    size_type mCapacity = 0;
     //! Index representing first entry (0 <= mFront < mReserved).
-    std::size_t mFront = 0;
+    size_type mFront = 0;
     //! Number of entries in the queue (empty = 0, full = mReserved).
-    std::size_t mLength = 0;
+    size_type mLength = 0;
 
   private: // methods
 
     //! Convert from pos to index (throw exception if out-of-bounds).
-    std::size_t getCheckedIndex(std::size_t pos) const noexcept(false);
+    size_type getCheckedIndex(size_type pos) const noexcept(false);
     //! Convert from pos to index.
-    std::size_t getUncheckedIndex(std::size_t pos) const noexcept;
+    size_type getUncheckedIndex(size_type pos) const noexcept;
     //! Compute memory size to reserve.
-    std::size_t getNewMemoryLength(std::size_t n) const;
+    size_type getNewMemoryLength(size_type n) const;
     //! Ensure buffer size.
-    void reserve(std::size_t n);
+    void reserve(size_type n);
 
   public: // static methods
 
     //! Maximum capacity the container is able to hold.
-    static std::size_t max_capacity() noexcept { return MAX_CAPACITY; }
+    static constexpr size_type max_capacity() noexcept { return (std::numeric_limits<difference_type>::max()); }
 
   public: // methods
 
     //! Constructor (0 means unlimited).
-    cqueue(std::size_t capacity = 0);
+    cqueue(size_type capacity = 0);
     //! Copy constructor.
     cqueue(const cqueue &other);
     //! Move constructor.
@@ -152,11 +159,11 @@ class cqueue {
     cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
 
     //! Return queue capacity.
-    std::size_t capacity() const { return (mCapacity == MAX_CAPACITY ? 0 : mCapacity); }
+    size_type capacity() const { return (mCapacity == max_capacity() ? 0 : mCapacity); }
     //! Return the number of items.
-    std::size_t size() const { return mLength; }
+    size_type size() const { return mLength; }
     //! Current reserved size (numbers of items).
-    std::size_t reserved() const { return mReserved; }
+    size_type reserved() const { return mReserved; }
     //! Check if there are items in the queue.
     bool empty() const { return (mLength == 0); }
 
@@ -187,9 +194,9 @@ class cqueue {
     bool pop_back();
 
     //! Returns a reference to the element at position n.
-    T & operator[](std::size_t n) { return mData[getCheckedIndex(n)]; }
+    T & operator[](size_type n) { return mData[getCheckedIndex(n)]; }
     //! Returns a const reference to the element at position n.
-    const T & operator[](std::size_t n) const { return mData[getCheckedIndex(n)]; }
+    const T & operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
 
     //! Returns an iterator to the first element.
     iterator begin() noexcept { return iterator(this, 0); }
@@ -212,11 +219,11 @@ class cqueue {
  * @param[in] capacity Container capacity.
  */
 template<std::semiregular T>
-gto::cqueue<T>::cqueue(std::size_t capacity) {
-  if (capacity > MAX_CAPACITY) {
+gto::cqueue<T>::cqueue(size_type capacity) {
+  if (capacity > max_capacity()) {
     throw std::length_error("cqueue max capacity exceeded");
   } else {
-    mCapacity = (capacity == 0 ? MAX_CAPACITY : capacity);
+    mCapacity = (capacity == 0 ? max_capacity() : capacity);
   }
 }
 
@@ -227,7 +234,7 @@ template<std::semiregular T>
 gto::cqueue<T>::cqueue(const cqueue &other) {
   mCapacity = other.mCapacity;
   reserve(mLength);
-  for (std::size_t i = 0; i < other.size(); i++) {
+  for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
 }
@@ -239,7 +246,7 @@ template<std::semiregular T>
 gto::cqueue<T> & gto::cqueue<T>::operator=(const cqueue &other) {
   clear();
   mCapacity = other.mCapacity;
-  for (std::size_t i = 0; i < other.size(); i++) {
+  for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
   return *this;
@@ -250,7 +257,7 @@ gto::cqueue<T> & gto::cqueue<T>::operator=(const cqueue &other) {
  * @return Index in buffer.
  */
 template<std::semiregular T>
-std::size_t gto::cqueue<T>::getUncheckedIndex(std::size_t pos) const noexcept {
+typename gto::cqueue<T>::size_type gto::cqueue<T>::getUncheckedIndex(size_type pos) const noexcept {
   return (mFront + pos) % (mReserved == 0 ? 1 : mReserved);
 }
 
@@ -260,7 +267,7 @@ std::size_t gto::cqueue<T>::getUncheckedIndex(std::size_t pos) const noexcept {
  * @exception std::out_of_range Invalid position.
  */
 template<std::semiregular T>
-std::size_t gto::cqueue<T>::getCheckedIndex(std::size_t pos) const noexcept(false) {
+typename gto::cqueue<T>::size_type gto::cqueue<T>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
   } else {
@@ -273,7 +280,7 @@ std::size_t gto::cqueue<T>::getCheckedIndex(std::size_t pos) const noexcept(fals
  */
 template<std::semiregular T>
 void gto::cqueue<T>::clear() noexcept {
-  for (std::size_t i = 0; i < mLength; i++) {
+  for (size_type i = 0; i < mLength; ++i) {
     mData[getUncheckedIndex(i)] = T{};
   }
   mFront = 0;
@@ -297,8 +304,8 @@ void gto::cqueue<T>::swap(cqueue<T> &x) noexcept {
  * @param[in] n New queue size.
  */
 template<std::semiregular T>
-std::size_t gto::cqueue<T>::getNewMemoryLength(std::size_t n) const {
-  std::size_t ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
+typename gto::cqueue<T>::size_type gto::cqueue<T>::getNewMemoryLength(size_type n) const {
+  size_type ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
   while (ret < n) {
     ret *= GROWTH_FACTOR;
   }
@@ -310,16 +317,16 @@ std::size_t gto::cqueue<T>::getNewMemoryLength(std::size_t n) const {
  * @exception std::length_error Capacity exceeded.
  */
 template<std::semiregular T>
-void gto::cqueue<T>::reserve(std::size_t n) {
+void gto::cqueue<T>::reserve(size_type n) {
   if (n < mReserved) {
     return;
   } else if (n > mCapacity) {
     throw std::length_error("cqueue capacity exceeded");
   }
 
-  std::size_t len = getNewMemoryLength(n);
+  size_type len = getNewMemoryLength(n);
   auto tmp = std::make_unique<T[]>(len);
-  for (std::size_t i = 0; i < mLength; i++) {
+  for (size_type i = 0; i < mLength; ++i) {
     tmp[i] = std::move(mData[getUncheckedIndex(i)]);
   }
 
@@ -336,7 +343,7 @@ template<std::semiregular T>
 void gto::cqueue<T>::push(const T &val) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = val;
-  mLength++;
+  ++mLength;
 }
 
 /**
@@ -347,7 +354,7 @@ template<std::semiregular T>
 void gto::cqueue<T>::push(T &&val) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = std::move(val);
-  mLength++;
+  ++mLength;
 }
 
 /**
@@ -359,7 +366,7 @@ void gto::cqueue<T>::push_front(const T &val) {
   reserve(mLength + 1);
   mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   mData[mFront] = val;
-  mLength++;
+  ++mLength;
 }
 
 /**
@@ -371,7 +378,7 @@ void gto::cqueue<T>::push_front(T &&val) {
   reserve(mLength + 1);
   mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   mData[mFront] = std::move(val);
-  mLength++;
+  ++mLength;
 }
 
 /**
@@ -383,7 +390,7 @@ template <class... Args>
 void gto::cqueue<T>::emplace(Args&&... args) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = T{std::forward<Args>(args)...};
-  mLength++;
+  ++mLength;
 }
 
 /**
@@ -397,7 +404,7 @@ bool gto::cqueue<T>::pop() {
   
   mData[mFront] = T{};
   mFront = getUncheckedIndex(1);
-  mLength--;
+  --mLength;
   return true;
 }
 
@@ -409,7 +416,7 @@ bool gto::cqueue<T>::pop_back() {
   if (mLength == 0) {
     return false;
   }
-  mLength--;
+  --mLength;
   mData[getUncheckedIndex(mLength)] = T{};
   return true;
 }
