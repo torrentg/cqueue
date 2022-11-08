@@ -1,19 +1,23 @@
 # TODO
 
-1. Use `valgrind massif` to check how memory is used in `std::dequeue`
-2. Solve issues identified in the [code review](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)
-    * Remove `MAX_CAPACITY` limitation
+1. Solve issues identified in the [code review](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)
     * Avoid object contruction on memory allocation
     * Construct/destroy items only on push/pop
     * Rename cqueue to circular_queue
-    * Use `[[nodiscard]]` when possible
-    * More `noexcept` are possible
     * Considere to add `constexpr` support
-3. Considere to add `shrink_to_fit` method
-4. Execute profiler
+2. Considere to add `shrink_to_fit` method
+3. Execute profiler
 
     ```sh
     g++ -pg -std=c++20 -g -o cqueue-mem cqueue-mem.cpp && \
     ./cqueue-mem && \
     gprof ./cqueue-mem gmon.out > cqueue-mem.gmon
+    ```
+
+4. Execute valgrind massif
+
+    ```sh
+    g++ -std=c++20 -g -o cqueue-mem cqueue-mem.cpp && \
+    valgrind --tool=massif --time-unit=B --threshold=0.0 ./cqueue-mem \
+    ms_print --threshold=0.0 massif.out.xxxxxx > massif.out.cqueue
     ```

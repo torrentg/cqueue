@@ -38,14 +38,18 @@ class cqueue {
     class iterator {
       public:
         using iterator_category = std::random_access_iterator_tag;
+        using value_type = T;
+        using difference_type = std::ptrdiff_t;
+        using pointer = value_type *;
+        using reference = value_type &;
       private:
-        cqueue<T> *queue = nullptr;
+        cqueue *queue = nullptr;
         difference_type pos = 0;
       private:
         size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
         difference_type size() const { return static_cast<difference_type>(queue->size()); }
       public:
-        explicit iterator(cqueue<T> *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
+        explicit iterator(cqueue *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
         reference operator*() { return queue->operator[](cast(pos)); }
         pointer operator->() { return &(queue->operator[](cast(pos))); }
         reference operator[](difference_type rhs) const { return (queue->operator[](cast(pos + rhs))); }
@@ -73,17 +77,17 @@ class cqueue {
       public:
         using iterator_category = std::random_access_iterator_tag;
         using value_type = const T;
-        using pointer = const T *;
-        using reference = const T &;
-
+        using difference_type = std::ptrdiff_t;
+        using pointer = value_type *;
+        using reference = value_type &;
       private:
-        const cqueue<T> *queue = nullptr;
+        const cqueue *queue = nullptr;
         difference_type pos = 0;
       private:
         size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
         difference_type size() const { return static_cast<difference_type>(queue->size()); }
       public:
-        explicit const_iterator(const cqueue<T> *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
+        explicit const_iterator(const cqueue *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
         reference operator*() { return queue->operator[](cast(pos)); }
         pointer operator->() { return &(queue->operator[](cast(pos))); }
         reference operator[](difference_type rhs) const { return (queue->operator[](cast(pos + rhs))); }
@@ -159,22 +163,22 @@ class cqueue {
     cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
 
     //! Return queue capacity.
-    size_type capacity() const { return (mCapacity == max_capacity() ? 0 : mCapacity); }
+    [[nodiscard]] constexpr size_type capacity() const noexcept { return (mCapacity == max_capacity() ? 0 : mCapacity); }
     //! Return the number of items.
-    size_type size() const { return mLength; }
+    [[nodiscard]] constexpr size_type size() const noexcept { return mLength; }
     //! Current reserved size (numbers of items).
-    size_type reserved() const { return mReserved; }
+    [[nodiscard]] constexpr size_type reserved() const noexcept { return mReserved; }
     //! Check if there are items in the queue.
-    bool empty() const { return (mLength == 0); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return (mLength == 0); }
 
     //! Return the first element.
-    const T & front() const { return operator[](0); }
+    const_reference front() const { return operator[](0); }
     //! Return the first element.
-    T & front() { return operator[](0); }
+    reference front() { return operator[](0); }
     //! Return the last element.
-    const T & back() const { return operator[](mLength-1); }
+    const_reference back() const { return operator[](mLength-1); }
     //! Return the last element.
-    T & back() { return operator[](mLength-1); }
+    reference back() { return operator[](mLength-1); }
 
     //! Insert an element at the end.
     void push(const T &val);
@@ -194,23 +198,23 @@ class cqueue {
     bool pop_back();
 
     //! Returns a reference to the element at position n.
-    T & operator[](size_type n) { return mData[getCheckedIndex(n)]; }
+    reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
     //! Returns a const reference to the element at position n.
-    const T & operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
+    const_reference operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
 
     //! Returns an iterator to the first element.
     iterator begin() noexcept { return iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    iterator end() noexcept { return iterator(this, static_cast<std::ptrdiff_t>(size())); }
+    iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
     //! Returns an iterator to the first element.
     const_iterator begin() const noexcept { return const_iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    const_iterator end() const noexcept { return const_iterator(this, static_cast<std::ptrdiff_t>(size())); }
+    const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
 
     //! Clear content.
     void clear() noexcept;
     //! Swap content.
-    void swap (cqueue<T> &x) noexcept;
+    void swap (cqueue &x) noexcept;
 };
 
 } // namespace gto
