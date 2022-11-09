@@ -9,6 +9,10 @@ using gto::cqueue;
 
 TEST_CASE("cqueue") {
 
+  SECTION("sizeof") {
+    CHECK(sizeof(cqueue<int>) == sizeof(std::unique_ptr<int[]>) + 4*sizeof(std::size_t));
+  }
+
   SECTION("max_capacity") {
     CHECK(cqueue<int>::max_capacity() == std::numeric_limits<std::ptrdiff_t>::max());
   }

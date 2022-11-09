@@ -17,7 +17,7 @@ namespace gto {
  * @note This class is not thread-safe.
  * @version 1.0.0
  */
-template<std::semiregular T>
+template<std::semiregular T, typename Allocator = std::allocator<T>>
 class cqueue {
 
   public: // declarations
@@ -30,8 +30,8 @@ class cqueue {
     using const_pointer = const pointer;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
-    //using allocator_type = Allocator;
-    //using const_alloc_reference = const allocator_type&;
+    using allocator_type = Allocator;
+    using const_alloc_reference = const allocator_type &;
     //using init_list_type = std::initializer_list<T>;
 
     //! cqueue iterator.
@@ -119,6 +119,9 @@ class cqueue {
 
   private: // members
 
+    //! Memory allocator.
+    [[no_unique_address]]
+    allocator_type mAllocator;
     //! Buffer.
     std::unique_ptr<T[]> mData;
     //! Buffer size.
@@ -140,6 +143,8 @@ class cqueue {
     size_type getNewMemoryLength(size_type n) const;
     //! Ensure buffer size.
     void reserve(size_type n);
+    //! Clear and dealloc memory (preserve capacity and allocator).
+    void reset() noexcept;
 
   public: // static methods
 
@@ -148,20 +153,28 @@ class cqueue {
 
   public: // methods
 
-    //! Constructor (0 means unlimited).
-    cqueue(size_type capacity = 0);
+    //! Constructor.
+    explicit cqueue(const_alloc_reference alloc = Allocator()) : cqueue(0, alloc) {}
+    //! Constructor (capacity=0 means unlimited).
+    explicit cqueue(size_type capacity, const_alloc_reference alloc = Allocator());
     //! Copy constructor.
     cqueue(const cqueue &other);
+    //! Copy constructor with allocator.
+    cqueue(const cqueue &other, const_alloc_reference alloc);
     //! Move constructor.
     cqueue(cqueue &&other) noexcept { this->swap(other); }
+    //! Move constructor.
+    cqueue(cqueue &&other, const_alloc_reference alloc);
     //! Destructor.
-    ~cqueue() = default;
+    ~cqueue() noexcept { reset(); };
 
     //! Copy assignment.
     cqueue & operator=(const cqueue &other);
     //! Move assignment.
     cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
 
+    //! Return container allocator.
+    [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
     //! Return queue capacity.
     [[nodiscard]] constexpr size_type capacity() const noexcept { return (mCapacity == max_capacity() ? 0 : mCapacity); }
     //! Return the number of items.
@@ -222,8 +235,9 @@ class cqueue {
 /**
  * @param[in] capacity Container capacity.
  */
-template<std::semiregular T>
-gto::cqueue<T>::cqueue(size_type capacity) {
+template<std::semiregular T, typename Allocator>
+gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) : mAllocator(alloc)
+{
   if (capacity > max_capacity()) {
     throw std::length_error("cqueue max capacity exceeded");
   } else {
@@ -234,10 +248,12 @@ gto::cqueue<T>::cqueue(size_type capacity) {
 /**
  * @param[in] other Queue to copy.
  */
-template<std::semiregular T>
-gto::cqueue<T>::cqueue(const cqueue &other) {
-  mCapacity = other.mCapacity;
-  reserve(mLength);
+template<std::semiregular T, typename Allocator>
+gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
+    mAllocator{std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator())},
+    mCapacity{other.mCapacity}
+{
+  reserve(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
@@ -246,10 +262,50 @@ gto::cqueue<T>::cqueue(const cqueue &other) {
 /**
  * @param[in] other Queue to copy.
  */
-template<std::semiregular T>
-gto::cqueue<T> & gto::cqueue<T>::operator=(const cqueue &other) {
-  clear();
+template<std::semiregular T, typename Allocator>
+gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference alloc) : 
+    mAllocator{alloc},
+    mCapacity{other.mCapacity}
+{
+  reserve(other.mLength);
+  for (size_type i = 0; i < other.size(); ++i) {
+    push(other[i]);
+  }
+}
+
+/**
+ * @param[in] other Queue to copy.
+ * @param[in] alloc Allocator to use
+ */
+template<std::semiregular T, typename Allocator>
+gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
+  if constexpr (alloc == other.get_allocator()) {
+    swap(other);
+  } else {
+    mAllocator = std::move(alloc);
+    mCapacity = other.mCapacity;
+    reserve(other.mLength);
+    for (size_type i = 0; i < other.size(); ++i) {
+      push(std::move(other[i]));
+    }
+    other.swap(cqueue());
+  }
+}
+
+/**
+ * @param[in] other Queue to copy.
+ */
+template<std::semiregular T, typename Allocator>
+gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &other) {
+  if (this == &other) {
+    return *this;
+  }
+  reset();
+  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value) {
+    mAllocator = other.get_allocator();
+  }
   mCapacity = other.mCapacity;
+  reserve(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
@@ -260,8 +316,8 @@ gto::cqueue<T> & gto::cqueue<T>::operator=(const cqueue &other) {
  * @param[in] num Element position.
  * @return Index in buffer.
  */
-template<std::semiregular T>
-typename gto::cqueue<T>::size_type gto::cqueue<T>::getUncheckedIndex(size_type pos) const noexcept {
+template<std::semiregular T, typename Allocator>
+typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
   return (mFront + pos) % (mReserved == 0 ? 1 : mReserved);
 }
 
@@ -270,8 +326,8 @@ typename gto::cqueue<T>::size_type gto::cqueue<T>::getUncheckedIndex(size_type p
  * @return Index in buffer.
  * @exception std::out_of_range Invalid position.
  */
-template<std::semiregular T>
-typename gto::cqueue<T>::size_type gto::cqueue<T>::getCheckedIndex(size_type pos) const noexcept(false) {
+template<std::semiregular T, typename Allocator>
+typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
   } else {
@@ -282,8 +338,8 @@ typename gto::cqueue<T>::size_type gto::cqueue<T>::getCheckedIndex(size_type pos
 /**
  * @details Remove all elements.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::clear() noexcept {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::clear() noexcept {
   for (size_type i = 0; i < mLength; ++i) {
     mData[getUncheckedIndex(i)] = T{};
   }
@@ -292,23 +348,41 @@ void gto::cqueue<T>::clear() noexcept {
 }
 
 /**
+ * @details Remove all elements and frees memory.
+ */
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::reset() noexcept {
+  mData.reset();
+  mFront = 0;
+  mLength = 0;
+  mReserved = 0;
+}
+
+/**
  * @details Swap content with another same-type cqueue.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::swap(cqueue<T> &x) noexcept {
-  mData.swap(x.mData);
-  std::swap(mFront, x.mFront);
-  std::swap(mLength, x.mLength);
-  std::swap(mReserved, x.mReserved);
-  std::swap(mCapacity, x.mCapacity);
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
+  if (this == &other) {
+    return;
+  }
+  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap::value
+      || std::allocator_traits<allocator_type>::is_always_equal::value) {
+    std::swap(mAllocator, other.mAllocator);
+  }
+  std::swap(mFront, other.mFront);
+  std::swap(mLength, other.mLength);
+  std::swap(mReserved, other.mReserved);
+  std::swap(mCapacity, other.mCapacity);
+  mData.swap(other.mData);
 }
 
 /**
  * @brief Compute the new buffer size.
  * @param[in] n New queue size.
  */
-template<std::semiregular T>
-typename gto::cqueue<T>::size_type gto::cqueue<T>::getNewMemoryLength(size_type n) const {
+template<std::semiregular T, typename Allocator>
+typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const {
   size_type ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
   while (ret < n) {
     ret *= GROWTH_FACTOR;
@@ -320,8 +394,8 @@ typename gto::cqueue<T>::size_type gto::cqueue<T>::getNewMemoryLength(size_type 
  * @param[in] n Expected future queue size.
  * @exception std::length_error Capacity exceeded.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::reserve(size_type n) {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::reserve(size_type n) {
   if (n < mReserved) {
     return;
   } else if (n > mCapacity) {
@@ -343,8 +417,8 @@ void gto::cqueue<T>::reserve(size_type n) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::push(const T &val) {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::push(const T &val) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = val;
   ++mLength;
@@ -354,8 +428,8 @@ void gto::cqueue<T>::push(const T &val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::push(T &&val) {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::push(T &&val) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = std::move(val);
   ++mLength;
@@ -365,8 +439,8 @@ void gto::cqueue<T>::push(T &&val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::push_front(const T &val) {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::push_front(const T &val) {
   reserve(mLength + 1);
   mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   mData[mFront] = val;
@@ -377,8 +451,8 @@ void gto::cqueue<T>::push_front(const T &val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::semiregular T>
-void gto::cqueue<T>::push_front(T &&val) {
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::push_front(T &&val) {
   reserve(mLength + 1);
   mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   mData[mFront] = std::move(val);
@@ -389,9 +463,9 @@ void gto::cqueue<T>::push_front(T &&val) {
  * @param[in] args Arguments of the new item.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::semiregular T>
+template<std::semiregular T, typename Allocator>
 template <class... Args>
-void gto::cqueue<T>::emplace(Args&&... args) {
+void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
   reserve(mLength + 1);
   mData[getUncheckedIndex(mLength)] = T{std::forward<Args>(args)...};
   ++mLength;
@@ -400,8 +474,8 @@ void gto::cqueue<T>::emplace(Args&&... args) {
 /**
  * @return true = an element was erased, false = no elements in the queue.
  */
-template<std::semiregular T>
-bool gto::cqueue<T>::pop() {
+template<std::semiregular T, typename Allocator>
+bool gto::cqueue<T, Allocator>::pop() {
   if (mLength == 0) {
     return false;
   }
@@ -415,8 +489,8 @@ bool gto::cqueue<T>::pop() {
 /**
  * @return true = an element was erased, false = no elements in the queue.
  */
-template<std::semiregular T>
-bool gto::cqueue<T>::pop_back() {
+template<std::semiregular T, typename Allocator>
+bool gto::cqueue<T, Allocator>::pop_back() {
   if (mLength == 0) {
     return false;
   }
