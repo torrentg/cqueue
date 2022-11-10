@@ -123,7 +123,7 @@ class cqueue {
     [[no_unique_address]]
     allocator_type mAllocator;
     //! Buffer.
-    std::unique_ptr<T[]> mData;
+    pointer mData = nullptr;
     //! Buffer size.
     size_type mReserved = 0;
     //! Maximum number of elements (always > 0).
@@ -143,6 +143,8 @@ class cqueue {
     size_type getNewMemoryLength(size_type n) const;
     //! Ensure buffer size.
     void reserve(size_type n);
+    //! Resize buffer.
+    void resize(size_type n);
     //! Clear and dealloc memory (preserve capacity and allocator).
     void reset() noexcept;
 
@@ -341,7 +343,8 @@ typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getChec
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::clear() noexcept {
   for (size_type i = 0; i < mLength; ++i) {
-    mData[getUncheckedIndex(i)] = T{};
+    size_type index = getUncheckedIndex(i);
+    std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
   }
   mFront = 0;
   mLength = 0;
@@ -352,9 +355,9 @@ void gto::cqueue<T, Allocator>::clear() noexcept {
  */
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::reset() noexcept {
-  mData.reset();
-  mFront = 0;
-  mLength = 0;
+  clear();
+  std::allocator_traits<allocator_type>::deallocate(mAllocator, mData, mReserved);
+  mData = nullptr;
   mReserved = 0;
 }
 
@@ -366,15 +369,14 @@ void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
   if (this == &other) {
     return;
   }
-  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap::value
-      || std::allocator_traits<allocator_type>::is_always_equal::value) {
+  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap::value) {
     std::swap(mAllocator, other.mAllocator);
   }
+  std::swap(mData, other.mData);
   std::swap(mFront, other.mFront);
   std::swap(mLength, other.mLength);
   std::swap(mReserved, other.mReserved);
   std::swap(mCapacity, other.mCapacity);
-  mData.swap(other.mData);
 }
 
 /**
@@ -393,6 +395,7 @@ typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewM
 /**
  * @param[in] n Expected future queue size.
  * @exception std::length_error Capacity exceeded.
+ * @exception ... Error throwed by move contructors.
  */
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::reserve(size_type n) {
@@ -400,16 +403,47 @@ void gto::cqueue<T, Allocator>::reserve(size_type n) {
     return;
   } else if (n > mCapacity) {
     throw std::length_error("cqueue capacity exceeded");
+  } else {
+    size_type len = getNewMemoryLength(n);
+    resize(len);
+  }
+}
+
+/**
+ * @param[in] n New reserved size.
+ * @exception ... Error throwed by move contructors.
+ */
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::resize(size_type len) {
+  pointer tmp = std::allocator_traits<allocator_type>::allocate(mAllocator, len);
+  size_type i = 0;
+
+  // move elements from mData to tmp
+  try {
+    for (i = 0; i < mLength; ++i) {
+      size_type index = getUncheckedIndex(i);
+      std::allocator_traits<allocator_type>::construct(mAllocator, tmp + i, std::move(mData[index]));
+    }
+  } catch (...) {
+    for (size_type j = 0; j < i; ++j) {
+      std::allocator_traits<allocator_type>::destroy(mAllocator, tmp + j);
+    }
+    std::allocator_traits<allocator_type>::deallocate(mAllocator, tmp, len);
+    throw;
   }
 
-  size_type len = getNewMemoryLength(n);
-  auto tmp = std::make_unique<T[]>(len);
-  for (size_type i = 0; i < mLength; ++i) {
-    tmp[i] = std::move(mData[getUncheckedIndex(i)]);
+  // destroy mData elements
+  for (size_type j = 0; j < mLength; ++j) {
+    size_type index = getUncheckedIndex(j);
+    std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
   }
 
+  // deallocate mData
+  std::allocator_traits<allocator_type>::deallocate(mAllocator, mData, mReserved);
+
+  // assign new content
+  mData = tmp;
   mReserved = len;
-  mData.swap(tmp);
   mFront = 0;
 }
 
@@ -420,7 +454,8 @@ void gto::cqueue<T, Allocator>::reserve(size_type n) {
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::push(const T &val) {
   reserve(mLength + 1);
-  mData[getUncheckedIndex(mLength)] = val;
+  size_type index = getUncheckedIndex(mLength);
+  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
   ++mLength;
 }
 
@@ -431,7 +466,8 @@ void gto::cqueue<T, Allocator>::push(const T &val) {
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::push(T &&val) {
   reserve(mLength + 1);
-  mData[getUncheckedIndex(mLength)] = std::move(val);
+  size_type index = getUncheckedIndex(mLength);
+  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
   ++mLength;
 }
 
@@ -442,8 +478,9 @@ void gto::cqueue<T, Allocator>::push(T &&val) {
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::push_front(const T &val) {
   reserve(mLength + 1);
-  mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
-  mData[mFront] = val;
+  size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
+  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
+  mFront = index;
   ++mLength;
 }
 
@@ -454,8 +491,9 @@ void gto::cqueue<T, Allocator>::push_front(const T &val) {
 template<std::semiregular T, typename Allocator>
 void gto::cqueue<T, Allocator>::push_front(T &&val) {
   reserve(mLength + 1);
-  mFront = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
-  mData[mFront] = std::move(val);
+  size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
+  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
+  mFront = index;
   ++mLength;
 }
 
@@ -467,7 +505,8 @@ template<std::semiregular T, typename Allocator>
 template <class... Args>
 void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
   reserve(mLength + 1);
-  mData[getUncheckedIndex(mLength)] = T{std::forward<Args>(args)...};
+  size_type index = getUncheckedIndex(mLength);
+  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::forward<Args>(args)...);
   ++mLength;
 }
 
@@ -479,8 +518,7 @@ bool gto::cqueue<T, Allocator>::pop() {
   if (mLength == 0) {
     return false;
   }
-  
-  mData[mFront] = T{};
+  std::allocator_traits<allocator_type>::destroy(mAllocator, mData + mFront);
   mFront = getUncheckedIndex(1);
   --mLength;
   return true;
@@ -494,7 +532,8 @@ bool gto::cqueue<T, Allocator>::pop_back() {
   if (mLength == 0) {
     return false;
   }
+  size_type index = getUncheckedIndex(mLength - 1);
+  std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
   --mLength;
-  mData[getUncheckedIndex(mLength)] = T{};
   return true;
 }

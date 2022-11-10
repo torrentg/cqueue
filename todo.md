@@ -1,8 +1,6 @@
 # TODO
 
 1. Solve issues identified in the [code review](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)
-    * Avoid object contruction on memory allocation
-    * Construct/destroy items only on push/pop
     * Rename cqueue to circular_queue
     * Considere to add `constexpr` support
 2. Considere to add `shrink_to_fit` method
