@@ -226,12 +226,14 @@ class cqueue {
     //! Returns an iterator to the element following the last element.
     [[nodiscard]] constexpr const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
 
-    //! Ensure buffer size.
-    constexpr void reserve(size_type n);
     //! Clear content.
     void clear() noexcept;
     //! Swap content.
     constexpr void swap (cqueue &x) noexcept;
+    //! Ensure buffer size.
+    constexpr void reserve(size_type n);
+    //! Shrink reserved memory to current size.
+    constexpr void shrink_to_fit();
 };
 
 } // namespace gto
@@ -423,6 +425,20 @@ constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
     throw std::length_error("cqueue capacity exceeded");
   } else {
     resize(n);
+  }
+}
+
+/**
+ * @details Memory is not shrink if current length below DEFAULT_RESERVED.
+ * @exception std::length_error Capacity exceeded.
+ * @exception ... Error throwed by move contructors.
+ */
+template<std::copyable T, typename Allocator>
+constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
+  if (mLength == 0 || mLength == mReserved || mLength <= DEFAULT_RESERVED) {
+    return;
+  } else {
+    resize(mLength);
   }
 }
 

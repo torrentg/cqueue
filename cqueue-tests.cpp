@@ -698,6 +698,31 @@ TEST_CASE("cqueue") {
     }
   }
 
+  SECTION("shrink_to_fit") {
+    cqueue<int> queue(20);
+    CHECK(queue.reserved() == 0);
+    queue.shrink_to_fit();  // nothing to shrink
+    CHECK(queue.reserved() == 0);
+    queue.push(1);
+    CHECK(queue.reserved() == 8);
+    queue.shrink_to_fit();  // not shrinked because len <= 8
+    CHECK(queue.reserved() == 8);
+    for (size_t i = 2; i <= 12; i++) {
+      queue.push(static_cast<int>(i));
+    }
+    CHECK(queue.size() == 12);
+    CHECK(queue.reserved() == 16);
+    queue.shrink_to_fit();  // shrink mem
+    CHECK(queue.size() == 12);
+    CHECK(queue.reserved() == 12);
+    for (size_t i = 0; i < 12; i++) {
+      CHECK(queue[i] == static_cast<int>(i + 1));
+    }
+    queue.shrink_to_fit();  // already shrinked
+    CHECK(queue.reserved() == 12);
+    CHECK(queue.size() == 12);
+  }
+
   SECTION("clear") {
     cqueue<int> queue;
     queue.push(1);
