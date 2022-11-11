@@ -1,7 +1,7 @@
 #include <deque>
 
 #define INITIAL_SIZE 8
-#define NUM_ITERATIONS 100000
+#define NUM_ITERATIONS 1000000
 #define BATCH_SIZE 20
 
 // g++ -std=c++20 -g -o deque-mem deque-mem.cpp

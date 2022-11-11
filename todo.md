@@ -2,7 +2,6 @@
 
 1. Solve issues identified in the [code review](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)
     * Rename cqueue to circular_queue
-    * Considere to add `constexpr` support
 2. Considere to add `shrink_to_fit` method
 3. Execute profiler
 
@@ -19,3 +18,5 @@
     valgrind --tool=massif --time-unit=B --threshold=0.0 ./cqueue-mem \
     ms_print --threshold=0.0 massif.out.xxxxxx > massif.out.cqueue
     ```
+
+5. Considere to add reverse iterators

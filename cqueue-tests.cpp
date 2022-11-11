@@ -7,10 +7,27 @@
 using std::string;
 using gto::cqueue;
 
+template <class T>
+struct custom_allocator {
+  typedef T value_type;
+  std::size_t numBytes = 0;
+  custom_allocator() noexcept {}
+  template <class U> custom_allocator (const custom_allocator<U>&) noexcept {}
+  T* allocate (std::size_t n) { numBytes += n*sizeof(T); return static_cast<T*>(::operator new(n*sizeof(T))); }
+  void deallocate (T* p, std::size_t n) { numBytes -= n*sizeof(T); ::delete(p); }
+};
+
+template <class T, class U>
+constexpr bool operator== (const custom_allocator<T>&, const custom_allocator<U>&) noexcept { return false; }
+
+template <class T, class U>
+constexpr bool operator!= (const custom_allocator<T>&, const custom_allocator<U>&) noexcept { return true; }
+
 TEST_CASE("cqueue") {
 
   SECTION("sizeof") {
-    CHECK(sizeof(cqueue<int>) == sizeof(std::unique_ptr<int[]>) + 4*sizeof(std::size_t));
+    CHECK(sizeof(cqueue<int>) == sizeof(int *) + 4*sizeof(std::size_t));
+    CHECK(sizeof(cqueue<int, custom_allocator<int>>) == sizeof(int *) + 5*sizeof(std::size_t));
   }
 
   SECTION("max_capacity") {
@@ -54,6 +71,23 @@ TEST_CASE("cqueue") {
     CHECK(queue2[1] == 3);
   }
 
+  SECTION("copy-constructor-with-allocator") {
+    cqueue<int> queue1(10);
+    queue1.push(1);
+    queue1.push(2);
+    queue1.push(3);
+    queue1.pop();
+    CHECK(queue1.capacity() == 10);
+    CHECK(queue1.size() == 2);
+    CHECK(queue1[0] == 2);
+    CHECK(queue1[1] == 3);
+    cqueue<int> queue2(queue1, std::allocator<int>());
+    CHECK(queue2.capacity() == 10);
+    CHECK(queue2.size() == 2);
+    CHECK(queue2[0] == 2);
+    CHECK(queue2[1] == 3);
+  }
+
   SECTION("move-constructor") {
     cqueue<int> queue1(10);
     queue1.push(1);
@@ -65,6 +99,46 @@ TEST_CASE("cqueue") {
     CHECK(queue1[0] == 2);
     CHECK(queue1[1] == 3);
     cqueue<int> queue2(std::move(queue1));
+    CHECK(queue2.capacity() == 10);
+    CHECK(queue2.size() == 2);
+    CHECK(queue2[0] == 2);
+    CHECK(queue2[1] == 3);
+    CHECK(queue1.capacity() == 0);
+    CHECK(queue1.reserved() == 0);
+    CHECK(queue1.empty());
+  }
+
+  SECTION("move-constructor-with-allocator") {
+    cqueue<int> queue1(10);
+    queue1.push(1);
+    queue1.push(2);
+    queue1.push(3);
+    queue1.pop();
+    CHECK(queue1.capacity() == 10);
+    CHECK(queue1.size() == 2);
+    CHECK(queue1[0] == 2);
+    CHECK(queue1[1] == 3);
+    cqueue<int> queue2(std::move(queue1), std::allocator<int>());
+    CHECK(queue2.capacity() == 10);
+    CHECK(queue2.size() == 2);
+    CHECK(queue2[0] == 2);
+    CHECK(queue2[1] == 3);
+    CHECK(queue1.capacity() == 0);
+    CHECK(queue1.reserved() == 0);
+    CHECK(queue1.empty());
+  }
+
+  SECTION("move-constructor-with-custom-allocator") {
+    cqueue<int,custom_allocator<int>> queue1(10, custom_allocator<int>());
+    queue1.push(1);
+    queue1.push(2);
+    queue1.push(3);
+    queue1.pop();
+    CHECK(queue1.capacity() == 10);
+    CHECK(queue1.size() == 2);
+    CHECK(queue1[0] == 2);
+    CHECK(queue1[1] == 3);
+    cqueue<int,custom_allocator<int>> queue2(std::move(queue1), custom_allocator<int>());
     CHECK(queue2.capacity() == 10);
     CHECK(queue2.size() == 2);
     CHECK(queue2[0] == 2);
@@ -303,6 +377,50 @@ TEST_CASE("cqueue") {
     CHECK(queue.reserved() == 8);
     CHECK(queue.front() == "1");
     CHECK(queue.back() == "2");
+  }
+
+  SECTION("exception-on-resize") {
+    static bool fail = false;
+    class myclass {
+      public:
+        int num = 0;
+        myclass(int x = 0) : num(x) {}
+        myclass(const myclass &) = default;
+        myclass(myclass &&o) {
+          if (fail && o.num == 3) {
+            throw std::exception();
+          } else {
+            num = o.num;
+          }
+        }
+        myclass& operator=(const myclass &o) = default;
+        myclass& operator=(myclass &&o) = default;
+        void swap(myclass &o) { return std::swap(num, o.num); }
+    };
+
+    cqueue<myclass> queue(10);
+    queue.push(myclass(1));
+    queue.push(myclass(2));
+    queue.push(myclass(3));  // <- will fail when construct-moved
+    queue.push(myclass(4));
+    queue.push(myclass(5));
+    queue.push(myclass(6));
+    queue.push(myclass(7));
+    queue.push(myclass(8));
+
+    CHECK(queue.size() == 8);
+    CHECK(queue.reserved() == 8);
+    for (std::size_t i = 0; i < 8; i++) {
+      CHECK(queue[i].num == static_cast<int>(i + 1));
+    }
+
+    fail = true;
+    CHECK_THROWS(queue.push(myclass(9)));
+    CHECK(queue.size() == 8);
+    CHECK(queue.reserved() == 8);
+    for (std::size_t i = 0; i < 8; i++) {
+      CHECK(queue[i].num == static_cast<int>(i + 1));
+    }
   }
 
   SECTION("subscript") {
@@ -567,6 +685,18 @@ TEST_CASE("cqueue") {
     }
   }
 
+  SECTION("reserve") {
+    {
+      cqueue<int> queue(100);
+      CHECK(queue.reserved() == 0);
+      queue.reserve(10);
+      CHECK(queue.reserved() == 10);
+      queue.reserve(8);
+      CHECK(queue.reserved() == 10);
+      CHECK_THROWS(queue.reserve(1000));
+    }
+  }
+
   SECTION("clear") {
     cqueue<int> queue;
     queue.push(1);
@@ -607,6 +737,16 @@ TEST_CASE("cqueue") {
     CHECK(queue2.front() == 1);
     CHECK(queue2.back() == 1);
 
+    CHECK(queue1.capacity() == 10);
+    CHECK(queue1.size() == 2);
+    CHECK(queue1.reserved() == 8);
+    CHECK(queue1.front() == 2);
+    CHECK(queue1.back() == 3);
+
+    // auto-swap
+    auto ptr = &queue1.front();
+    queue1.swap(queue1);
+    CHECK(ptr == &queue1.front());
     CHECK(queue1.capacity() == 10);
     CHECK(queue1.size() == 2);
     CHECK(queue1.reserved() == 8);

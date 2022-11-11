@@ -11,7 +11,8 @@ namespace gto {
 
 /**
  * @brief Circular queue.
- * @details Iterators are invalidated by: push(), push_front(), emplace(), pop(), pop_back(), reset() and clear().
+ * @details Iterators are invalidated by: 
+ *          push(), push_front(), emplace(), pop(), pop_back(), reserve(), reset() and clear().
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
@@ -136,13 +137,13 @@ class cqueue {
   private: // methods
 
     //! Convert from pos to index (throw exception if out-of-bounds).
-    size_type getCheckedIndex(size_type pos) const noexcept(false);
+    constexpr size_type getCheckedIndex(size_type pos) const noexcept(false);
     //! Convert from pos to index.
-    size_type getUncheckedIndex(size_type pos) const noexcept;
+    constexpr size_type getUncheckedIndex(size_type pos) const noexcept;
     //! Compute memory size to reserve.
-    size_type getNewMemoryLength(size_type n) const;
-    //! Ensure buffer size.
-    void reserve(size_type n);
+    constexpr size_type getNewMemoryLength(size_type n) const noexcept;
+    //! Resize buffer.
+    constexpr void resizeIfRequired(size_type n);
     //! Resize buffer.
     void resize(size_type n);
     //! Clear and dealloc memory (preserve capacity and allocator).
@@ -156,24 +157,24 @@ class cqueue {
   public: // methods
 
     //! Constructor.
-    explicit cqueue(const_alloc_reference alloc = Allocator()) : cqueue(0, alloc) {}
+    constexpr explicit cqueue(const_alloc_reference alloc = Allocator()) : cqueue(0, alloc) {}
     //! Constructor (capacity=0 means unlimited).
-    explicit cqueue(size_type capacity, const_alloc_reference alloc = Allocator());
+    constexpr explicit cqueue(size_type capacity, const_alloc_reference alloc = Allocator());
     //! Copy constructor.
-    cqueue(const cqueue &other);
+    constexpr cqueue(const cqueue &other);
     //! Copy constructor with allocator.
-    cqueue(const cqueue &other, const_alloc_reference alloc);
+    constexpr cqueue(const cqueue &other, const_alloc_reference alloc);
     //! Move constructor.
-    cqueue(cqueue &&other) noexcept { this->swap(other); }
+    constexpr cqueue(cqueue &&other) noexcept { this->swap(other); }
     //! Move constructor.
-    cqueue(cqueue &&other, const_alloc_reference alloc);
+    constexpr cqueue(cqueue &&other, const_alloc_reference alloc);
     //! Destructor.
     ~cqueue() noexcept { reset(); };
 
     //! Copy assignment.
-    cqueue & operator=(const cqueue &other);
+    constexpr cqueue & operator=(const cqueue &other);
     //! Move assignment.
-    cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
+    constexpr cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
 
     //! Return container allocator.
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
@@ -187,58 +188,62 @@ class cqueue {
     [[nodiscard]] constexpr bool empty() const noexcept { return (mLength == 0); }
 
     //! Return the first element.
-    const_reference front() const { return operator[](0); }
+    [[nodiscard]] constexpr const_reference front() const { return operator[](0); }
     //! Return the first element.
-    reference front() { return operator[](0); }
+    [[nodiscard]] constexpr reference front() { return operator[](0); }
     //! Return the last element.
-    const_reference back() const { return operator[](mLength-1); }
+    [[nodiscard]] constexpr const_reference back() const { return operator[](mLength-1); }
     //! Return the last element.
-    reference back() { return operator[](mLength-1); }
+    [[nodiscard]] constexpr reference back() { return operator[](mLength-1); }
 
     //! Insert an element at the end.
-    void push(const T &val);
+    constexpr void push(const T &val);
     //! Insert an element at the end.
-    void push(T &&val);
+    constexpr void push(T &&val);
     //! Insert an element at the front.
-    void push_front(const T &val);
+    constexpr void push_front(const T &val);
     //! Insert an element at the front.
-    void push_front(T &&val);
+    constexpr void push_front(T &&val);
 
     //! Construct and insert an element at the end.
     template <class... Args>
-    void emplace(Args&&... args);
+    constexpr void emplace(Args&&... args);
     //! Remove the front element.
-    bool pop();
+    constexpr bool pop();
     //! Remove the back element.
-    bool pop_back();
+    constexpr bool pop_back();
 
     //! Returns a reference to the element at position n.
-    reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
+    [[nodiscard]] constexpr reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
     //! Returns a const reference to the element at position n.
-    const_reference operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
+    [[nodiscard]] constexpr const_reference operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
 
     //! Returns an iterator to the first element.
-    iterator begin() noexcept { return iterator(this, 0); }
+    [[nodiscard]] constexpr iterator begin() noexcept { return iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
+    [[nodiscard]] constexpr iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
     //! Returns an iterator to the first element.
-    const_iterator begin() const noexcept { return const_iterator(this, 0); }
+    [[nodiscard]] constexpr const_iterator begin() const noexcept { return const_iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
+    [[nodiscard]] constexpr const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
 
+    //! Ensure buffer size.
+    constexpr void reserve(size_type n);
     //! Clear content.
     void clear() noexcept;
     //! Swap content.
-    void swap (cqueue &x) noexcept;
+    constexpr void swap (cqueue &x) noexcept;
 };
 
 } // namespace gto
 
 /**
  * @param[in] capacity Container capacity.
+ * @param[in] alloc Allocator to use.
  */
 template<std::semiregular T, typename Allocator>
-gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) : mAllocator(alloc)
+constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) : 
+    mAllocator(alloc), mData{nullptr}, mReserved{0}, mCapacity{max_capacity()}, mFront{0}, mLength{0}
 {
   if (capacity > max_capacity()) {
     throw std::length_error("cqueue max capacity exceeded");
@@ -251,11 +256,11 @@ gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference allo
  * @param[in] other Queue to copy.
  */
 template<std::semiregular T, typename Allocator>
-gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
+constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
     mAllocator{std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator())},
-    mCapacity{other.mCapacity}
+    mData{nullptr}, mReserved{0}, mCapacity{other.mCapacity}, mFront{0}, mLength{0}
 {
-  reserve(other.mLength);
+  resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
@@ -263,13 +268,13 @@ gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
 
 /**
  * @param[in] other Queue to copy.
+ * @param[in] alloc Allocator to use.
  */
 template<std::semiregular T, typename Allocator>
-gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference alloc) : 
-    mAllocator{alloc},
-    mCapacity{other.mCapacity}
+constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference alloc) : 
+    mAllocator{alloc}, mData{nullptr}, mReserved{0}, mCapacity{other.mCapacity}, mFront{0}, mLength{0}
 {
-  reserve(other.mLength);
+  resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
     push(other[i]);
   }
@@ -280,17 +285,20 @@ gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference all
  * @param[in] alloc Allocator to use
  */
 template<std::semiregular T, typename Allocator>
-gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
-  if constexpr (alloc == other.get_allocator()) {
-    swap(other);
+constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) :
+    mData{nullptr}, mReserved{0}, mCapacity{max_capacity()}, mFront{0}, mLength{0}
+{
+  if (alloc == other.mAllocator) {
+    this->swap(other);
   } else {
-    mAllocator = std::move(alloc);
+    mAllocator = alloc;
     mCapacity = other.mCapacity;
-    reserve(other.mLength);
+    resizeIfRequired(other.mLength);
     for (size_type i = 0; i < other.size(); ++i) {
       push(std::move(other[i]));
     }
-    other.swap(cqueue());
+    other.reset();
+    other.mCapacity = 0;
   }
 }
 
@@ -298,18 +306,10 @@ gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
  * @param[in] other Queue to copy.
  */
 template<std::semiregular T, typename Allocator>
-gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &other) {
-  if (this == &other) {
-    return *this;
-  }
-  reset();
-  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value) {
-    mAllocator = other.get_allocator();
-  }
-  mCapacity = other.mCapacity;
-  reserve(other.mLength);
-  for (size_type i = 0; i < other.size(); ++i) {
-    push(other[i]);
+constexpr gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &other) {
+  if (this != &other) {
+    cqueue tmp(other);
+    this->swap(tmp);
   }
   return *this;
 }
@@ -319,8 +319,8 @@ gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &o
  * @return Index in buffer.
  */
 template<std::semiregular T, typename Allocator>
-typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
-  return (mFront + pos) % (mReserved == 0 ? 1 : mReserved);
+constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
+  return ((mFront + pos) % (mReserved == 0 ? 1 : mReserved));
 }
 
 /**
@@ -329,7 +329,7 @@ typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getUnch
  * @exception std::out_of_range Invalid position.
  */
 template<std::semiregular T, typename Allocator>
-typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
+constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
   } else {
@@ -365,7 +365,7 @@ void gto::cqueue<T, Allocator>::reset() noexcept {
  * @details Swap content with another same-type cqueue.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
+constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
   if (this == &other) {
     return;
   }
@@ -384,7 +384,7 @@ void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
  * @param[in] n New queue size.
  */
 template<std::semiregular T, typename Allocator>
-typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const {
+constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const noexcept {
   size_type ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
   while (ret < n) {
     ret *= GROWTH_FACTOR;
@@ -398,10 +398,12 @@ typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewM
  * @exception ... Error throwed by move contructors.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::reserve(size_type n) {
+constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
   if (n < mReserved) {
+    [[likely]]
     return;
   } else if (n > mCapacity) {
+    [[unlikely]] 	
     throw std::length_error("cqueue capacity exceeded");
   } else {
     size_type len = getNewMemoryLength(n);
@@ -410,11 +412,30 @@ void gto::cqueue<T, Allocator>::reserve(size_type n) {
 }
 
 /**
- * @param[in] n New reserved size.
+ * @param[in] n Expected future queue size.
+ * @exception std::length_error Capacity exceeded.
  * @exception ... Error throwed by move contructors.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::resize(size_type len) {
+constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
+  if (n < mReserved) {
+    return;
+  } else if (n > mCapacity) {
+    throw std::length_error("cqueue capacity exceeded");
+  } else {
+    resize(n);
+  }
+}
+
+/**
+ * @param[in] n New reserved size.
+ * @details Provides strong exception guarantee.
+ * @see https://en.cppreference.com/w/cpp/language/exceptions#Exception_safety
+ * @exception ... Error throwed by move contructors.
+ */
+template<std::semiregular T, typename Allocator>
+void gto::cqueue<T, Allocator>::resize(size_type len)
+{
   pointer tmp = std::allocator_traits<allocator_type>::allocate(mAllocator, len);
   size_type i = 0;
 
@@ -452,8 +473,8 @@ void gto::cqueue<T, Allocator>::resize(size_type len) {
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::push(const T &val) {
-  reserve(mLength + 1);
+constexpr void gto::cqueue<T, Allocator>::push(const T &val) {
+  resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
   ++mLength;
@@ -464,8 +485,8 @@ void gto::cqueue<T, Allocator>::push(const T &val) {
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::push(T &&val) {
-  reserve(mLength + 1);
+constexpr void gto::cqueue<T, Allocator>::push(T &&val) {
+  resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
   ++mLength;
@@ -476,8 +497,8 @@ void gto::cqueue<T, Allocator>::push(T &&val) {
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::push_front(const T &val) {
-  reserve(mLength + 1);
+constexpr void gto::cqueue<T, Allocator>::push_front(const T &val) {
+  resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
   mFront = index;
@@ -489,8 +510,8 @@ void gto::cqueue<T, Allocator>::push_front(const T &val) {
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::semiregular T, typename Allocator>
-void gto::cqueue<T, Allocator>::push_front(T &&val) {
-  reserve(mLength + 1);
+constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
+  resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
   mFront = index;
@@ -503,8 +524,8 @@ void gto::cqueue<T, Allocator>::push_front(T &&val) {
  */
 template<std::semiregular T, typename Allocator>
 template <class... Args>
-void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
-  reserve(mLength + 1);
+constexpr void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
+  resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::forward<Args>(args)...);
   ++mLength;
@@ -514,7 +535,7 @@ void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
  * @return true = an element was erased, false = no elements in the queue.
  */
 template<std::semiregular T, typename Allocator>
-bool gto::cqueue<T, Allocator>::pop() {
+constexpr bool gto::cqueue<T, Allocator>::pop() {
   if (mLength == 0) {
     return false;
   }
@@ -528,7 +549,7 @@ bool gto::cqueue<T, Allocator>::pop() {
  * @return true = an element was erased, false = no elements in the queue.
  */
 template<std::semiregular T, typename Allocator>
-bool gto::cqueue<T, Allocator>::pop_back() {
+constexpr bool gto::cqueue<T, Allocator>::pop_back() {
   if (mLength == 0) {
     return false;
   }
