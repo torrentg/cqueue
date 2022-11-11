@@ -382,17 +382,18 @@ TEST_CASE("cqueue") {
   SECTION("exception-on-resize") {
     static bool fail = false;
     class myclass {
+      void assign(int n) {
+        if (fail && n == 3) {
+          throw std::exception();
+        } else {
+          num = n;
+        }
+      }
       public:
         int num = 0;
         myclass(int x = 0) : num(x) {}
-        myclass(const myclass &) = default;
-        myclass(myclass &&o) {
-          if (fail && o.num == 3) {
-            throw std::exception();
-          } else {
-            num = o.num;
-          }
-        }
+        myclass(const myclass &o) { assign(o.num); }
+        myclass(myclass &&o) { assign(o.num); }
         myclass& operator=(const myclass &o) = default;
         myclass& operator=(myclass &&o) = default;
         void swap(myclass &o) { return std::swap(num, o.num); }
@@ -401,7 +402,7 @@ TEST_CASE("cqueue") {
     cqueue<myclass> queue(10);
     queue.push(myclass(1));
     queue.push(myclass(2));
-    queue.push(myclass(3));  // <- will fail when construct-moved
+    queue.push(myclass(3));  // <- will fail when resize
     queue.push(myclass(4));
     queue.push(myclass(5));
     queue.push(myclass(6));

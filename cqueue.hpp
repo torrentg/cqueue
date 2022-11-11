@@ -33,7 +33,6 @@ class cqueue {
     using difference_type = std::ptrdiff_t;
     using allocator_type = Allocator;
     using const_alloc_reference = const allocator_type &;
-    //using init_list_type = std::initializer_list<T>;
 
     //! cqueue iterator.
     class iterator {
@@ -437,20 +436,29 @@ template<std::copyable T, typename Allocator>
 void gto::cqueue<T, Allocator>::resize(size_type len)
 {
   pointer tmp = std::allocator_traits<allocator_type>::allocate(mAllocator, len);
-  size_type i = 0;
 
-  // move elements from mData to tmp
-  try {
-    for (i = 0; i < mLength; ++i) {
+  if constexpr (std::is_nothrow_move_constructible<T>::value) {
+    // move elements from mData to tmp
+    for (size_type i = 0; i < mLength; ++i) {
       size_type index = getUncheckedIndex(i);
       std::allocator_traits<allocator_type>::construct(mAllocator, tmp + i, std::move(mData[index]));
     }
-  } catch (...) {
-    for (size_type j = 0; j < i; ++j) {
-      std::allocator_traits<allocator_type>::destroy(mAllocator, tmp + j);
+  }
+  else {
+    // copy elements from mData to tmp
+    size_type i = 0;
+    try {
+      for (i = 0; i < mLength; ++i) {
+        size_type index = getUncheckedIndex(i);
+        std::allocator_traits<allocator_type>::construct(mAllocator, tmp + i, mData[index]);
+      }
+    } catch (...) {
+      for (size_type j = 0; j < i; ++j) {
+        std::allocator_traits<allocator_type>::destroy(mAllocator, tmp + j);
+      }
+      std::allocator_traits<allocator_type>::deallocate(mAllocator, tmp, len);
+      throw;
     }
-    std::allocator_traits<allocator_type>::deallocate(mAllocator, tmp, len);
-    throw;
   }
 
   // destroy mData elements
