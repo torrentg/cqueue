@@ -2,6 +2,18 @@
 
 cqueue is a simple C++20 header-only [circular queue](https://en.wikipedia.org/wiki/Circular_buffer) container.
 
+| Statement | Length | Reserved | Content |
+|:--------- |:------:|:--------:|:--------|
+| `cqueue<int> queue;` | `0` | `0` | `-` |
+| `queue.push(1);` | `1` | `8` | &#10122;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;  |
+| `queue.push(2);` | `2` | `8` | &#10122;&#10113;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;  |
+| `queue.push(3);` | `3` | `8` | &#10122;&#10113;&#10114;&#9737;&#9737;&#9737;&#9737;&#9737;  |
+| `queue.pop();` | `2` | `8` | &#9737;&#10123;&#10114;&#9737;&#9737;&#9737;&#9737;&#9737;  |
+| `for (int i = 4; i <= 8; ++i)`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`queue.push(i);` | `7` | `8` | &#9737;&#10123;&#10114;&#10115;&#10116;&#10117;&#10118;&#10119;  |
+| `queue.push(9);` | `8` | `8` | &#10120;&#10123;&#10114;&#10115;&#10116;&#10117;&#10118;&#10119; |
+| `queue.push(10);` | `9` | `16` | &#10123;&#10114;&#10115;&#10116;&#10117;&#10118;&#10119;&#10119;&#10121;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737; |
+| `queue.clear();` | `0` | `16` | &#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737;&#9737; |
+
 cqueue is similar to a std::vector
 
 * Random access iterators
@@ -14,11 +26,11 @@ cqueue is similar to a std::vector
 
 * push() add an element at the end
 * pop() remove the first element
-* Items in the middle cannot be removed
+* Cannot insert or remove items in the middle
 
 ... where
 
-* Items are stored sequentially 'modulus' _n_ (where _n_ is the current reserved storage size)
+* Items are stored 'modulus' _n_ (`queue[pos] = buffer[(mFront+pos)%mReserved]`)
 * Memory new/delete calls are minimized
 
 ... having some extras
@@ -29,18 +41,12 @@ cqueue is similar to a std::vector
 
 ... and some lacks
 
-* Custom allocator currently not supported
 * Comparison operators currently not supported
-* Limited constexpr support
+* Restricted to C++20 compilers
 
 ## Motivation
 
-The memory usage done by `std::deque`:
-
-* Number of calls to alloc/free
-* Number of bytes allocated/deallocated
-
-[deque-mem.cpp](deque-mem.cpp) and [cqueue-mem.cpp](cqueue-mem.cpp) implements a trivial
+Memory management (alloc/free) done by `std::deque` is very intense in queue-like operations (push/pop). [deque-mem.cpp](deque-mem.cpp) and [cqueue-mem.cpp](cqueue-mem.cpp) implements a trivial
 use case of a queue where we push _n_ items and pop _n_ items repeatedly.
 
 Using [`std::deque`](https://en.cppreference.com/w/cpp/container/deque):
