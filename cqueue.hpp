@@ -199,23 +199,36 @@ class cqueue {
     //! Return the last element.
     [[nodiscard]] constexpr reference back() { return operator[](mLength-1); }
 
+    //! Construct and insert an element at the end.
+    template <class... Args>
+    constexpr reference emplace_back(Args&&... args);
+    //! Construct and insert an element at the front.
+    template <class... Args>
+    constexpr reference emplace_front(Args&&... args);
+
     //! Insert an element at the end.
-    constexpr void push(const T &val);
+    constexpr void push_back(const T &val);
     //! Insert an element at the end.
-    constexpr void push(T &&val);
+    constexpr void push_back(T &&val);
     //! Insert an element at the front.
     constexpr void push_front(const T &val);
     //! Insert an element at the front.
     constexpr void push_front(T &&val);
 
-    //! Construct and insert an element at the end.
-    template <class... Args>
-    constexpr reference emplace(Args&&... args);
-
     //! Remove the front element.
-    constexpr bool pop();
+    constexpr bool pop_front();
     //! Remove the back element.
     constexpr bool pop_back();
+
+    //! Alias to emplace_back.
+    template <class... Args>
+    constexpr reference emplace(Args&&... args) { return emplace_back(std::forward<Args>(args)...); }
+    //! Alias to push_back.
+    constexpr void push(const T &val) { return push_back(val); }
+    //! Alias to push_back.
+    constexpr void push(T &&val) { return push_back(std::move(val)); }
+    //! Alias to pop_front.
+    constexpr bool pop() { return pop_front(); }
 
     //! Returns a reference to the element at position n.
     [[nodiscard]] constexpr reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
@@ -501,7 +514,7 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::copyable T, typename Allocator>
-constexpr void gto::cqueue<T, Allocator>::push(const T &val) {
+constexpr void gto::cqueue<T, Allocator>::push_back(const T &val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   allocator_traits::construct(mAllocator, mData + index, val);
@@ -513,7 +526,7 @@ constexpr void gto::cqueue<T, Allocator>::push(const T &val) {
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::copyable T, typename Allocator>
-constexpr void gto::cqueue<T, Allocator>::push(T &&val) {
+constexpr void gto::cqueue<T, Allocator>::push_back(T &&val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   allocator_traits::construct(mAllocator, mData + index, std::move(val));
@@ -552,7 +565,7 @@ constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
  */
 template<std::copyable T, typename Allocator>
 template <class... Args>
-constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace(Args&&... args) {
+constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace_back(Args&&... args) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   allocator_traits::construct(mAllocator, mData + index, std::forward<Args>(args)...);
@@ -561,10 +574,25 @@ constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator
 }
 
 /**
+ * @param[in] args Arguments of the new item.
+ * @exception std::length_error Number of values exceed queue capacity.
+ */
+template<std::copyable T, typename Allocator>
+template <class... Args>
+constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace_front(Args&&... args) {
+  resizeIfRequired(mLength + 1);
+  size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
+  allocator_traits::construct(mAllocator, mData + index, std::forward<Args>(args)...);
+  mFront = index;
+  ++mLength;
+  return mData[index];
+}
+
+/**
  * @return true = an element was erased, false = no elements in the queue.
  */
 template<std::copyable T, typename Allocator>
-constexpr bool gto::cqueue<T, Allocator>::pop() {
+constexpr bool gto::cqueue<T, Allocator>::pop_front() {
   if (mLength == 0) {
     return false;
   }

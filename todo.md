@@ -22,8 +22,8 @@
 5. ~~Rely on member-value-initialization instead on explicit value on constructor.~~
 6. ~~Define MAX_CAPACITY~~
 7. ~~Let emplace() and push() return a reference~~
-8. push() -> push_back(), pop() -> pop_back(), emplace -> emplace_back()
-9. Create emplace_front()
+8. ~~push() -> push_back(), pop() -> pop_back(), emplace -> emplace_back()~~
+9. ~~Create emplace_front()~~
 10. DEFAULT_RESERVE -> MIN_ALLOCATE
 11. Solve error in shrink_to_fit(). This method will just not shrink at all if there are less than DEFAULT_RESERVED elements in the queue (mLength), even if you have a huge amount of memory reserved (mReserved)!
 12. resizeIfRequired() + resize(): solve case n == mReserved.

@@ -286,27 +286,25 @@ TEST_CASE("cqueue") {
     }
   }
 
-  SECTION("push-ref") {
+  SECTION("push_back-ref") {
     cqueue<int> queue;
     CHECK(queue.empty());
-    queue.push(1);
+    queue.push_back(1);
     CHECK(queue.back() == 1);
-    queue.push(2);
+    queue.push_back(2);
     CHECK(queue.back() == 2);
   }
 
-  SECTION("push-move") {
+  SECTION("push_back-move") {
     cqueue<string> queue(10);
-    queue.push("1");
-    queue.push(std::string("2"));
+    queue.push_back("1");
+    queue.push_back(std::string("2"));
     string aux = "3";
-    queue.push(std::move(aux));
-    auto x = queue.emplace("4");
-    CHECK(x == "4");
-    CHECK(queue.size() == 4);
+    queue.push_back(std::move(aux));
+    CHECK(queue.size() == 3);
     CHECK(queue.reserved() == 8);
     CHECK(queue.front() == "1");
-    CHECK(queue.back() == "4");
+    CHECK(queue.back() == "3");
   }
 
   SECTION("push_front-ref") {
@@ -369,15 +367,35 @@ TEST_CASE("cqueue") {
     }
   }
 
-  SECTION("emplace") {
+  SECTION("emplace_back") {
+    {
+      cqueue<string> queue(10);
+      auto x1 = queue.emplace_back("1");
+      auto x2 = queue.emplace_back("2");
+      CHECK(queue.size() == 2);
+      CHECK(queue.reserved() == 8);
+      CHECK(queue.front() == "1");
+      CHECK(queue.back() == "2");
+    }
+    { // emplace == emplace_back
+      cqueue<string> queue(10);
+      auto x1 = queue.emplace("1");
+      auto x2 = queue.emplace("2");
+      CHECK(queue.size() == 2);
+      CHECK(queue.reserved() == 8);
+      CHECK(queue.front() == "1");
+      CHECK(queue.back() == "2");
+    }
+  }
+
+  SECTION("emplace_front") {
     cqueue<string> queue(10);
-    string aux = "1";
-    queue.push(std::move(aux));
-    queue.emplace("2");
+    auto x1 = queue.emplace_front("1");
+    auto x2 = queue.emplace_front("2");
     CHECK(queue.size() == 2);
     CHECK(queue.reserved() == 8);
-    CHECK(queue.front() == "1");
-    CHECK(queue.back() == "2");
+    CHECK(queue.front() == "2");
+    CHECK(queue.back() == "1");
   }
 
   SECTION("exception-on-resize") {
