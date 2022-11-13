@@ -72,7 +72,7 @@ class cqueue {
         auto operator<=>(const iter &rhs) const {
             return (queue == rhs.queue ? pos <=> rhs.pos : std::partial_ordering::unordered);
         }
-        auto operator==(const iter &rhs) const { return ((*this <=> rhs) == 0); }
+        bool operator==(const iter &rhs) const { return ((*this <=> rhs) == 0); }
         iter& operator++() { return *this += 1; }
         iter& operator--() { return *this += -1; }
         [[nodiscard]] iter operator++(int) { iter tmp{queue, pos}; ++*this; return tmp; }
@@ -170,24 +170,24 @@ class cqueue {
     constexpr cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
 
     //! Return container allocator.
-    [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
+    constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
     //! Return queue capacity.
-    [[nodiscard]] constexpr auto capacity() const noexcept { return (mCapacity == MAX_CAPACITY ? 0 : mCapacity); }
+    constexpr auto capacity() const noexcept { return (mCapacity == MAX_CAPACITY ? 0 : mCapacity); }
     //! Return the number of items.
-    [[nodiscard]] constexpr auto size() const noexcept { return mLength; }
+    constexpr auto size() const noexcept { return mLength; }
     //! Current reserved size (numbers of items).
-    [[nodiscard]] constexpr auto reserved() const noexcept { return mReserved; }
+    constexpr auto reserved() const noexcept { return mReserved; }
     //! Check if there are items in the queue.
     [[nodiscard]] constexpr bool empty() const noexcept { return (mLength == 0); }
 
     //! Return the first element.
-    [[nodiscard]] constexpr const_reference front() const { return operator[](0); }
+    constexpr const_reference front() const { return operator[](0); }
     //! Return the first element.
-    [[nodiscard]] constexpr reference front() { return operator[](0); }
+    constexpr reference front() { return operator[](0); }
     //! Return the last element.
-    [[nodiscard]] constexpr const_reference back() const { return operator[](mLength-1); }
+    constexpr const_reference back() const { return operator[](mLength-1); }
     //! Return the last element.
-    [[nodiscard]] constexpr reference back() { return operator[](mLength-1); }
+    constexpr reference back() { return operator[](mLength-1); }
 
     //! Construct and insert an element at the end.
     template <class... Args>
@@ -221,18 +221,18 @@ class cqueue {
     constexpr bool pop() { return pop_front(); }
 
     //! Returns a reference to the element at position n.
-    [[nodiscard]] constexpr reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
+    constexpr reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
     //! Returns a const reference to the element at position n.
-    [[nodiscard]] constexpr const_reference operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
+    constexpr const_reference operator[](size_type n) const { return mData[getCheckedIndex(n)]; }
 
     //! Returns an iterator to the first element.
-    [[nodiscard]] constexpr iterator begin() noexcept { return iterator(this, 0); }
+    constexpr iterator begin() noexcept { return iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    [[nodiscard]] constexpr iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
+    constexpr iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
     //! Returns an iterator to the first element.
-    [[nodiscard]] constexpr const_iterator begin() const noexcept { return const_iterator(this, 0); }
+    constexpr const_iterator begin() const noexcept { return const_iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
-    [[nodiscard]] constexpr const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
+    constexpr const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
 
     //! Clear content.
     void clear() noexcept;
@@ -315,10 +315,8 @@ constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_referenc
  */
 template<std::copyable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &other) {
-  if (this != &other) {
-    cqueue tmp(other);
-    this->swap(tmp);
-  }
+  cqueue tmp(other);
+  this->swap(tmp);
   return *this;
 }
 
@@ -374,9 +372,6 @@ void gto::cqueue<T, Allocator>::reset() noexcept {
  */
 template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
-  if (this == &other) {
-    return;
-  }
   if constexpr (allocator_traits::propagate_on_container_swap::value) {
     std::swap(mAllocator, other.mAllocator);
   }
