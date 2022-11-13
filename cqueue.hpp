@@ -154,7 +154,8 @@ class cqueue {
     //! Constructor (capacity=0 means unlimited).
     constexpr explicit cqueue(size_type capacity, const_alloc_reference alloc = Allocator());
     //! Copy constructor.
-    constexpr cqueue(const cqueue &other);
+    constexpr cqueue(const cqueue &other) : 
+        cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())} {}
     //! Copy constructor with allocator.
     constexpr cqueue(const cqueue &other, const_alloc_reference alloc);
     //! Move constructor.
@@ -263,20 +264,6 @@ constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_refe
 
 /**
  * @param[in] other Queue to copy.
- */
-template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other) : 
-    mAllocator{allocator_traits::select_on_container_copy_construction(other.get_allocator())},
-    mCapacity{other.mCapacity}
-{
-  resizeIfRequired(other.mLength);
-  for (size_type i = 0; i < other.size(); ++i) {
-    push(other[i]);
-  }
-}
-
-/**
- * @param[in] other Queue to copy.
  * @param[in] alloc Allocator to use.
  */
 template<std::copyable T, typename Allocator>
@@ -297,16 +284,10 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
 template<std::copyable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
   if (alloc == other.mAllocator) {
-    this->swap(other);
+    swap(other);
   } else {
-    mAllocator = alloc;
-    mCapacity = other.mCapacity;
-    resizeIfRequired(other.mLength);
-    for (size_type i = 0; i < other.size(); ++i) {
-      push(std::move(other[i]));
-    }
-    other.reset();
-    other.mCapacity = 0;
+    cqueue q{other, alloc};
+    swap(q);
   }
 }
 

@@ -104,9 +104,6 @@ TEST_CASE("cqueue") {
     CHECK(queue2.size() == 2);
     CHECK(queue2[0] == 2);
     CHECK(queue2[1] == 3);
-    CHECK(queue1.capacity() == 0);
-    CHECK(queue1.reserved() == 0);
-    CHECK(queue1.empty());
   }
 
   SECTION("move-constructor-with-allocator") {
@@ -124,9 +121,6 @@ TEST_CASE("cqueue") {
     CHECK(queue2.size() == 2);
     CHECK(queue2[0] == 2);
     CHECK(queue2[1] == 3);
-    CHECK(queue1.capacity() == 0);
-    CHECK(queue1.reserved() == 0);
-    CHECK(queue1.empty());
   }
 
   SECTION("move-constructor-with-custom-allocator") {
@@ -144,9 +138,6 @@ TEST_CASE("cqueue") {
     CHECK(queue2.size() == 2);
     CHECK(queue2[0] == 2);
     CHECK(queue2[1] == 3);
-    CHECK(queue1.capacity() == 0);
-    CHECK(queue1.reserved() == 0);
-    CHECK(queue1.empty());
   }
 
   SECTION("copy-assignment") {

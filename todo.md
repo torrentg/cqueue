@@ -40,8 +40,8 @@
 23. ~~Add -Weffc++ as compiler option~~
 24. resize() private -> public + review standar.
 25. push(T &&val) -> push(T val)
-26. Constructor cqueue(const cqueue &other) forwards to cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())}
-27. Review cqueue(cqueue &&other, const_alloc_reference alloc) implementation
+26. ~~Constructor cqueue(const cqueue &other) forwards to cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())}~~
+27. ~~Review cqueue(cqueue &&other, const_alloc_reference alloc) implementation~~
 28. ~~Because operator=() uses copy-and-swap, there's no need to test for self-assignment.~~
 29. ~~swap() itself functions perfectly well for self-swap, so we can eliminate the condition there.~~
 30. ~~Use 'trailing return type' (return type = auto)~~

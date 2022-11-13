@@ -106,8 +106,7 @@ void example6() {
   queue.push(1);
   std::cout << prefix << to_string(queue) << std::endl;
   try {
-    auto x = queue[4];
-    x++;
+    queue[4];
   } catch(const std::exception &e) {
     std::cout << prefix << "exception: " << e.what() << std::endl;
   }
