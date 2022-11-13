@@ -301,7 +301,8 @@ TEST_CASE("cqueue") {
     queue.push(std::string("2"));
     string aux = "3";
     queue.push(std::move(aux));
-    queue.emplace("4");
+    auto x = queue.emplace("4");
+    CHECK(x == "4");
     CHECK(queue.size() == 4);
     CHECK(queue.reserved() == 8);
     CHECK(queue.front() == "1");

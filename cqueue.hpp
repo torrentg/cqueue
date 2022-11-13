@@ -34,6 +34,7 @@ class cqueue {
     using difference_type = std::ptrdiff_t;
     using allocator_type = Allocator;
     using const_alloc_reference = const allocator_type &;
+    using allocator_traits = std::allocator_traits<allocator_type>;
 
     //! cqueue iterator.
     class iterator {
@@ -117,18 +118,20 @@ class cqueue {
     static constexpr size_type GROWTH_FACTOR = 2;
     //! Default initial capacity (power of 2).
     static constexpr size_type DEFAULT_RESERVED = 8;
+    //! Maximum capacity.
+    static constexpr size_type MAX_CAPACITY = std::numeric_limits<difference_type>::max();
 
   private: // members
 
     //! Memory allocator.
     [[no_unique_address]]
-    allocator_type mAllocator;
+    allocator_type mAllocator = {};
     //! Buffer.
     pointer mData = nullptr;
     //! Buffer size.
     size_type mReserved = 0;
     //! Maximum number of elements (always > 0).
-    size_type mCapacity = 0;
+    size_type mCapacity = MAX_CAPACITY;
     //! Index representing first entry (0 <= mFront < mReserved).
     size_type mFront = 0;
     //! Number of entries in the queue (empty = 0, full = mReserved).
@@ -137,11 +140,11 @@ class cqueue {
   private: // methods
 
     //! Convert from pos to index (throw exception if out-of-bounds).
-    constexpr size_type getCheckedIndex(size_type pos) const noexcept(false);
+    constexpr auto getCheckedIndex(size_type pos) const noexcept(false);
     //! Convert from pos to index.
-    constexpr size_type getUncheckedIndex(size_type pos) const noexcept;
+    constexpr auto getUncheckedIndex(size_type pos) const noexcept;
     //! Compute memory size to reserve.
-    constexpr size_type getNewMemoryLength(size_type n) const noexcept;
+    constexpr auto getNewMemoryLength(size_type n) const noexcept;
     //! Resize buffer.
     constexpr void resizeIfRequired(size_type n);
     //! Resize buffer.
@@ -152,7 +155,7 @@ class cqueue {
   public: // static methods
 
     //! Maximum capacity the container is able to hold.
-    static constexpr size_type max_capacity() noexcept { return (std::numeric_limits<difference_type>::max()); }
+    static constexpr auto max_capacity() noexcept { return MAX_CAPACITY; }
 
   public: // methods
 
@@ -179,11 +182,11 @@ class cqueue {
     //! Return container allocator.
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
     //! Return queue capacity.
-    [[nodiscard]] constexpr size_type capacity() const noexcept { return (mCapacity == max_capacity() ? 0 : mCapacity); }
+    [[nodiscard]] constexpr auto capacity() const noexcept { return (mCapacity == MAX_CAPACITY ? 0 : mCapacity); }
     //! Return the number of items.
-    [[nodiscard]] constexpr size_type size() const noexcept { return mLength; }
+    [[nodiscard]] constexpr auto size() const noexcept { return mLength; }
     //! Current reserved size (numbers of items).
-    [[nodiscard]] constexpr size_type reserved() const noexcept { return mReserved; }
+    [[nodiscard]] constexpr auto reserved() const noexcept { return mReserved; }
     //! Check if there are items in the queue.
     [[nodiscard]] constexpr bool empty() const noexcept { return (mLength == 0); }
 
@@ -207,7 +210,8 @@ class cqueue {
 
     //! Construct and insert an element at the end.
     template <class... Args>
-    constexpr void emplace(Args&&... args);
+    constexpr reference emplace(Args&&... args);
+
     //! Remove the front element.
     constexpr bool pop();
     //! Remove the back element.
@@ -244,13 +248,13 @@ class cqueue {
  * @param[in] alloc Allocator to use.
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) : 
-    mAllocator(alloc), mData{nullptr}, mReserved{0}, mCapacity{max_capacity()}, mFront{0}, mLength{0}
+constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) :
+    mAllocator(alloc)
 {
-  if (capacity > max_capacity()) {
+  if (capacity > MAX_CAPACITY) {
     throw std::length_error("cqueue max capacity exceeded");
   } else {
-    mCapacity = (capacity == 0 ? max_capacity() : capacity);
+    mCapacity = (capacity == 0 ? MAX_CAPACITY : capacity);
   }
 }
 
@@ -258,9 +262,9 @@ constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_refe
  * @param[in] other Queue to copy.
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
-    mAllocator{std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator())},
-    mData{nullptr}, mReserved{0}, mCapacity{other.mCapacity}, mFront{0}, mLength{0}
+constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other) : 
+    mAllocator{allocator_traits::select_on_container_copy_construction(other.get_allocator())},
+    mCapacity{other.mCapacity}
 {
   resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
@@ -274,7 +278,8 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other) :
  */
 template<std::copyable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference alloc) : 
-    mAllocator{alloc}, mData{nullptr}, mReserved{0}, mCapacity{other.mCapacity}, mFront{0}, mLength{0}
+    mAllocator{alloc},
+    mCapacity{other.mCapacity}
 {
   resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
@@ -287,9 +292,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
  * @param[in] alloc Allocator to use
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) :
-    mData{nullptr}, mReserved{0}, mCapacity{max_capacity()}, mFront{0}, mLength{0}
-{
+constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
   if (alloc == other.mAllocator) {
     this->swap(other);
   } else {
@@ -321,7 +324,7 @@ constexpr gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const
  * @return Index in buffer.
  */
 template<std::copyable T, typename Allocator>
-constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
+constexpr auto gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
   return ((mFront + pos) % (mReserved == 0 ? 1 : mReserved));
 }
 
@@ -331,7 +334,7 @@ constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator
  * @exception std::out_of_range Invalid position.
  */
 template<std::copyable T, typename Allocator>
-constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
+constexpr auto gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
   } else {
@@ -346,7 +349,7 @@ template<std::copyable T, typename Allocator>
 void gto::cqueue<T, Allocator>::clear() noexcept {
   for (size_type i = 0; i < mLength; ++i) {
     size_type index = getUncheckedIndex(i);
-    std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
+    allocator_traits::destroy(mAllocator, mData + index);
   }
   mFront = 0;
   mLength = 0;
@@ -358,7 +361,7 @@ void gto::cqueue<T, Allocator>::clear() noexcept {
 template<std::copyable T, typename Allocator>
 void gto::cqueue<T, Allocator>::reset() noexcept {
   clear();
-  std::allocator_traits<allocator_type>::deallocate(mAllocator, mData, mReserved);
+  allocator_traits::deallocate(mAllocator, mData, mReserved);
   mData = nullptr;
   mReserved = 0;
 }
@@ -371,7 +374,7 @@ constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
   if (this == &other) {
     return;
   }
-  if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap::value) {
+  if constexpr (allocator_traits::propagate_on_container_swap::value) {
     std::swap(mAllocator, other.mAllocator);
   }
   std::swap(mData, other.mData);
@@ -386,7 +389,7 @@ constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
  * @param[in] n New queue size.
  */
 template<std::copyable T, typename Allocator>
-constexpr typename gto::cqueue<T, Allocator>::size_type gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const noexcept {
+constexpr auto gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const noexcept {
   size_type ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
   while (ret < n) {
     ret *= GROWTH_FACTOR;
@@ -452,13 +455,13 @@ constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
 template<std::copyable T, typename Allocator>
 void gto::cqueue<T, Allocator>::resize(size_type len)
 {
-  pointer tmp = std::allocator_traits<allocator_type>::allocate(mAllocator, len);
+  pointer tmp = allocator_traits::allocate(mAllocator, len);
 
   if constexpr (std::is_nothrow_move_constructible<T>::value) {
     // move elements from mData to tmp
     for (size_type i = 0; i < mLength; ++i) {
       size_type index = getUncheckedIndex(i);
-      std::allocator_traits<allocator_type>::construct(mAllocator, tmp + i, std::move(mData[index]));
+      allocator_traits::construct(mAllocator, tmp + i, std::move(mData[index]));
     }
   }
   else {
@@ -467,13 +470,13 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
     try {
       for (i = 0; i < mLength; ++i) {
         size_type index = getUncheckedIndex(i);
-        std::allocator_traits<allocator_type>::construct(mAllocator, tmp + i, mData[index]);
+        allocator_traits::construct(mAllocator, tmp + i, mData[index]);
       }
     } catch (...) {
       for (size_type j = 0; j < i; ++j) {
-        std::allocator_traits<allocator_type>::destroy(mAllocator, tmp + j);
+        allocator_traits::destroy(mAllocator, tmp + j);
       }
-      std::allocator_traits<allocator_type>::deallocate(mAllocator, tmp, len);
+      allocator_traits::deallocate(mAllocator, tmp, len);
       throw;
     }
   }
@@ -481,11 +484,11 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
   // destroy mData elements
   for (size_type j = 0; j < mLength; ++j) {
     size_type index = getUncheckedIndex(j);
-    std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
+    allocator_traits::destroy(mAllocator, mData + index);
   }
 
   // deallocate mData
-  std::allocator_traits<allocator_type>::deallocate(mAllocator, mData, mReserved);
+  allocator_traits::deallocate(mAllocator, mData, mReserved);
 
   // assign new content
   mData = tmp;
@@ -501,7 +504,7 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push(const T &val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
-  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
+  allocator_traits::construct(mAllocator, mData + index, val);
   ++mLength;
 }
 
@@ -513,7 +516,7 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push(T &&val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
-  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
+  allocator_traits::construct(mAllocator, mData + index, std::move(val));
   ++mLength;
 }
 
@@ -525,7 +528,7 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_front(const T &val) {
   resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
-  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, val);
+  allocator_traits::construct(mAllocator, mData + index, val);
   mFront = index;
   ++mLength;
 }
@@ -538,7 +541,7 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
   resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
-  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::move(val));
+  allocator_traits::construct(mAllocator, mData + index, std::move(val));
   mFront = index;
   ++mLength;
 }
@@ -549,11 +552,12 @@ constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
  */
 template<std::copyable T, typename Allocator>
 template <class... Args>
-constexpr void gto::cqueue<T, Allocator>::emplace(Args&&... args) {
+constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace(Args&&... args) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
-  std::allocator_traits<allocator_type>::construct(mAllocator, mData + index, std::forward<Args>(args)...);
+  allocator_traits::construct(mAllocator, mData + index, std::forward<Args>(args)...);
   ++mLength;
+  return mData[index];
 }
 
 /**
@@ -564,7 +568,7 @@ constexpr bool gto::cqueue<T, Allocator>::pop() {
   if (mLength == 0) {
     return false;
   }
-  std::allocator_traits<allocator_type>::destroy(mAllocator, mData + mFront);
+  allocator_traits::destroy(mAllocator, mData + mFront);
   mFront = getUncheckedIndex(1);
   --mLength;
   return true;
@@ -579,7 +583,7 @@ constexpr bool gto::cqueue<T, Allocator>::pop_back() {
     return false;
   }
   size_type index = getUncheckedIndex(mLength - 1);
-  std::allocator_traits<allocator_type>::destroy(mAllocator, mData + index);
+  allocator_traits::destroy(mAllocator, mData + index);
   --mLength;
   return true;
 }

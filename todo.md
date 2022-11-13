@@ -19,9 +19,9 @@
     ```
 
 4. Considere to add reverse iterators
-5. Rely on member-value-initialization instead on explicit value on constructor.
-6. Define MAX_CAPACITY
-7. Let emplace() and push() return a reference
+5. ~~Rely on member-value-initialization instead on explicit value on constructor.~~
+6. ~~Define MAX_CAPACITY~~
+7. ~~Let emplace() and push() return a reference~~
 8. push() -> push_back(), pop() -> pop_back(), emplace -> emplace_back()
 9. Create emplace_front()
 10. DEFAULT_RESERVE -> MIN_ALLOCATE
@@ -29,21 +29,21 @@
 12. resizeIfRequired() + resize(): solve case n == mReserved.
 13. solve case when resize(0) 
 14. Write the safer pos == size() ? size() : pos + 1
-15. using allocator_traits = std::allocator_traits<allocator_type>;
+15. ~~using allocator_traits = std::allocator_traits<allocator_type>;~~
 16. Use a single implementation for iterators.
 17. The iterator size comparison operators can be reduced to a single <=>.
 18. Convert identifiers from camelCase to snake_case.
 19. Review [[nodiscard]] usage.
 20. Consider adding cbegin() and cend().
 21. Consider adding reversed begin/end iterator functions.
-22. Default-initialise member mAllocator - allocator_type mAllocator = {};
-23. Add -Weffc++ as compiler option
+22. ~~Default-initialise member mAllocator - allocator_type mAllocator = {};~~
+23. ~~Add -Weffc++ as compiler option~~
 24. resize() private -> public + review standar.
 25. push(T &&val) -> push(T val)
 26. Constructor cqueue(const cqueue &other) forwards to cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())}
 27. Review cqueue(cqueue &&other, const_alloc_reference alloc) implementation
 28. Because operator=() uses copy-and-swap, there's no need to test for self-assignment.
 29. swap() itself functions perfectly well for self-swap, so we can eliminate the condition there.
-30. Use 'trailing return type' (return type = auto)
+30. ~~Use 'trailing return type' (return type = auto)~~
 31. Use deallocator in resize()
 32. Add reference to review2 + contributors
