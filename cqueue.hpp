@@ -2,18 +2,22 @@
 
 #include <memory>
 #include <limits>
+#include <compare>
 #include <utility>
 #include <concepts>
 #include <algorithm>
 #include <stdexcept>
+#include <type_traits>
 
 namespace gto {
 
 /**
  * @brief Circular queue.
  * @details Iterators are invalidated by: 
- *          push(), push_front(), emplace(), pop(), pop_back(), reserve(), 
- *          shrink_to_fit(), reset() and clear().
+ *          push(), push_back(), push_front(), 
+ *          pop(), pop_back(), pop_front(),
+ *          emplace(), emplace_back(), emplace_front(),
+ *          reserve(), shrink_to_fit(), reset() and clear().
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
@@ -22,95 +26,81 @@ namespace gto {
 template<std::copyable T, typename Allocator = std::allocator<T>>
 class cqueue {
 
+  private: // declarations
+
+    //! cqueue iterator.
+    template<typename U>
+    class iter {
+      public:
+        using iterator_category = std::random_access_iterator_tag;
+        using value_type = U;
+        using difference_type = std::ptrdiff_t;
+        using pointer = value_type *;
+        using reference = value_type &;
+      private:
+        friend class iter<std::add_const_t<value_type>>;
+        using size_type = std::size_t;
+        using queue_type = std::conditional_t<std::is_const_v<value_type>, const cqueue, cqueue>;
+      private:
+        queue_type *queue = nullptr;
+        difference_type pos = 0;
+      private:
+        auto cast(difference_type n) const {
+          return (n < 0 ? queue->size() : static_cast<size_type>(n));
+        }
+        auto size() const {
+          return static_cast<difference_type>(queue->size());
+        }
+        auto clamp(difference_type p) const {
+          return std::clamp<difference_type>(p, -1, size());
+        }
+      public:
+        explicit iter(queue_type *o, difference_type p = 0) : 
+            queue{o}, pos{clamp(p)} {}
+        iter(const iter<std::remove_const_t<value_type>> &other) requires std::is_const_v<value_type> : 
+            queue{other.queue}, pos{other.pos} {}
+        iter(const iter<value_type> &other) = default;
+        reference operator*() {
+            return queue->operator[](cast(pos));
+        }
+        pointer operator->() {
+            return &(queue->operator[](cast(pos)));
+        }
+        reference operator[](difference_type rhs) const {
+            return queue->operator[](cast(pos + rhs));
+        }
+        auto operator<=>(const iter &rhs) const {
+            return (queue == rhs.queue ? pos <=> rhs.pos : std::partial_ordering::unordered);
+        }
+        auto operator==(const iter &rhs) const { return ((*this <=> rhs) == 0); }
+        iter& operator++() { return *this += 1; }
+        iter& operator--() { return *this += -1; }
+        [[nodiscard]] iter operator++(int) { iter tmp{queue, pos}; ++*this; return tmp; }
+        [[nodiscard]] iter operator--(int) { iter tmp{queue, pos}; --*this; return tmp; }
+        auto& operator+=(difference_type rhs) { pos = clamp(pos + rhs); return *this; }
+        auto& operator-=(difference_type rhs) { pos = clamp(pos - rhs); return *this; }
+        auto operator+(difference_type rhs) const { return iter{queue, pos + rhs}; }
+        auto operator-(difference_type rhs) const { return iter{queue, pos - rhs}; }
+        friend iter operator+(difference_type lhs, const iter &rhs) { return iter{rhs.queue, lhs + rhs.pos}; }
+        friend iter operator-(difference_type lhs, const iter &rhs) { return iter{rhs.queue, lhs - rhs.pos}; }
+        auto operator-(const iter &rhs) const { return pos - rhs.pos; }
+    };
+
   public: // declarations
 
     // Aliases  
     using value_type = T;
     using reference = value_type &;
     using const_reference = const value_type &;
-    using pointer = T *;
+    using pointer = value_type *;
     using const_pointer = const pointer;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
     using allocator_type = Allocator;
     using const_alloc_reference = const allocator_type &;
     using allocator_traits = std::allocator_traits<allocator_type>;
-
-    //! cqueue iterator.
-    class iterator {
-      public:
-        using iterator_category = std::random_access_iterator_tag;
-        using value_type = T;
-        using difference_type = std::ptrdiff_t;
-        using pointer = value_type *;
-        using reference = value_type &;
-      private:
-        cqueue *queue = nullptr;
-        difference_type pos = 0;
-      private:
-        size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
-        difference_type size() const { return static_cast<difference_type>(queue->size()); }
-      public:
-        explicit iterator(cqueue *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
-        reference operator*() { return queue->operator[](cast(pos)); }
-        pointer operator->() { return &(queue->operator[](cast(pos))); }
-        reference operator[](difference_type rhs) const { return (queue->operator[](cast(pos + rhs))); }
-        bool operator==(const iterator &rhs) const { return (queue == rhs.queue && pos == rhs.pos); }
-        bool operator!=(const iterator &rhs) const { return (queue != rhs.queue || pos != rhs.pos); }
-        bool operator >(const iterator &rhs) const { return (queue == rhs.queue && pos  > rhs.pos); }
-        bool operator <(const iterator &rhs) const { return (queue == rhs.queue && pos  < rhs.pos); }
-        bool operator>=(const iterator &rhs) const { return (queue == rhs.queue && pos >= rhs.pos); }
-        bool operator<=(const iterator &rhs) const { return (queue == rhs.queue && pos <= rhs.pos); }
-        iterator& operator++() { pos = (pos + 1 < size() ? pos + 1 : size()); return *this; }
-        iterator& operator--() { pos = (pos < 0 ? -1 : pos -1); return *this; }
-        iterator  operator++(int) { iterator tmp(queue, pos); operator++(); return tmp; }
-        iterator  operator--(int) { iterator tmp(queue, pos); operator--(); return tmp; }
-        iterator& operator+=(difference_type rhs) { pos = (pos + rhs < size() ? pos + rhs : size()); return *this; }
-        iterator& operator-=(difference_type rhs) { pos = (pos - rhs < 0 ? -1 : pos - rhs); return *this; }
-        iterator  operator+(difference_type rhs) const { return iterator(queue, pos + rhs); }
-        iterator  operator-(difference_type rhs) const { return iterator(queue, pos - rhs); }
-        friend iterator operator+(difference_type lhs, const iterator &rhs) { return iterator(rhs.queue, lhs + rhs.pos); }
-        friend iterator operator-(difference_type lhs, const iterator &rhs) { return iterator(rhs.queue, lhs - rhs.pos); }
-        difference_type operator-(const iterator &rhs) const { return (pos - rhs.pos); }
-    };
-
-    //! cqueue const iterator.
-    class const_iterator {
-      public:
-        using iterator_category = std::random_access_iterator_tag;
-        using value_type = const T;
-        using difference_type = std::ptrdiff_t;
-        using pointer = value_type *;
-        using reference = value_type &;
-      private:
-        const cqueue *queue = nullptr;
-        difference_type pos = 0;
-      private:
-        size_type cast(difference_type n) const { return (n < 0 ? queue->size() : static_cast<size_type>(n)); }
-        difference_type size() const { return static_cast<difference_type>(queue->size()); }
-      public:
-        explicit const_iterator(const cqueue *o, difference_type p = 0) : queue(o), pos(p < 0 ? -1 : (p < size() ? p : size())) {}
-        reference operator*() { return queue->operator[](cast(pos)); }
-        pointer operator->() { return &(queue->operator[](cast(pos))); }
-        reference operator[](difference_type rhs) const { return (queue->operator[](cast(pos + rhs))); }
-        bool operator==(const const_iterator &rhs) const { return (queue == rhs.queue && pos == rhs.pos); }
-        bool operator!=(const const_iterator &rhs) const { return (queue != rhs.queue || pos != rhs.pos); }
-        bool operator >(const const_iterator &rhs) const { return (queue == rhs.queue && pos  > rhs.pos); }
-        bool operator <(const const_iterator &rhs) const { return (queue == rhs.queue && pos  < rhs.pos); }
-        bool operator>=(const const_iterator &rhs) const { return (queue == rhs.queue && pos >= rhs.pos); }
-        bool operator<=(const const_iterator &rhs) const { return (queue == rhs.queue && pos <= rhs.pos); }
-        const_iterator& operator++() { pos = (pos + 1 < size() ? pos + 1 : size()); return *this; }
-        const_iterator& operator--() { pos = (pos < 0 ? -1 : pos -1); return *this; }
-        const_iterator  operator++(int) { const_iterator tmp(queue, pos); operator++(); return tmp; }
-        const_iterator  operator--(int) { const_iterator tmp(queue, pos); operator--(); return tmp; }
-        const_iterator& operator+=(difference_type rhs) { pos = (pos + rhs < size() ? pos + rhs : size()); return *this; }
-        const_iterator& operator-=(difference_type rhs) { pos = (pos - rhs < 0 ? -1 : pos - rhs); return *this; }
-        const_iterator  operator+(difference_type rhs) const { return const_iterator(queue, pos + rhs); }
-        const_iterator  operator-(difference_type rhs) const { return const_iterator(queue, pos - rhs); }
-        friend const_iterator operator+(difference_type lhs, const const_iterator &rhs) { return const_iterator(rhs.queue, lhs + rhs.pos); }
-        friend const_iterator operator-(difference_type lhs, const const_iterator &rhs) { return const_iterator(rhs.queue, lhs - rhs.pos); }
-        difference_type operator-(const const_iterator &rhs) const { return (pos - rhs.pos); }
-    };
+    using iterator = iter<value_type>;
+    using const_iterator = iter<const value_type>;
 
   private: // static members
 

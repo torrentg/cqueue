@@ -30,8 +30,8 @@
 13. solve case when resize(0) 
 14. Write the safer pos == size() ? size() : pos + 1
 15. ~~using allocator_traits = std::allocator_traits<allocator_type>;~~
-16. Use a single implementation for iterators.
-17. The iterator size comparison operators can be reduced to a single <=>.
+16. ~~Use a single implementation for iterators.~~
+17. ~~The iterator size comparison operators can be reduced to a single <=>.~~
 18. Convert identifiers from camelCase to snake_case.
 19. Review [[nodiscard]] usage.
 20. Consider adding cbegin() and cend().
