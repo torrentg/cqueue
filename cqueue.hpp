@@ -117,7 +117,7 @@ class cqueue {
     //! Capacity increase factor.
     static constexpr size_type GROWTH_FACTOR = 2;
     //! Default initial capacity (power of 2).
-    static constexpr size_type DEFAULT_RESERVED = 8;
+    static constexpr size_type MIN_ALLOCATE = 8;
     //! Maximum capacity.
     static constexpr size_type MAX_CAPACITY = std::numeric_limits<difference_type>::max();
 
@@ -403,7 +403,7 @@ constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
  */
 template<std::copyable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const noexcept {
-  size_type ret = (mReserved == 0 ? std::min(mCapacity, DEFAULT_RESERVED) : mReserved);
+  size_type ret = (mReserved == 0 ? std::min(mCapacity, MIN_ALLOCATE) : mReserved);
   while (ret < n) {
     ret *= GROWTH_FACTOR;
   }
@@ -446,16 +446,17 @@ constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
 }
 
 /**
- * @details Memory is not shrink if current length below DEFAULT_RESERVED.
- * @exception std::length_error Capacity exceeded.
  * @exception ... Error throwed by move contructors.
  */
 template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
-  if (mLength == 0 || mLength == mReserved || mLength <= DEFAULT_RESERVED) {
+  if (mReserved == 0) {
     return;
+  } if (mLength == 0) {
+    reset();
   } else {
-    resize(mLength);
+    auto minLen = std::min(mCapacity, MIN_ALLOCATE);
+    resize(std::max(minLen, mLength));
   }
 }
 

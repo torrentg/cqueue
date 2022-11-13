@@ -9,6 +9,7 @@ using gto::cqueue;
 
 template <class T>
 struct custom_allocator {
+  using propagate_on_container_swap = std::true_type;
   typedef T value_type;
   std::size_t numBytes = 0;
   custom_allocator() noexcept {}
@@ -740,6 +741,18 @@ TEST_CASE("cqueue") {
     queue.shrink_to_fit();  // already shrinked
     CHECK(queue.reserved() == 12);
     CHECK(queue.size() == 12);
+    queue.clear();
+    queue.shrink_to_fit();
+    CHECK(queue.reserved() == 0);
+    CHECK(queue.empty());
+    { // case when capacity < 8
+      cqueue<int> queue(5);
+      queue.push(1);
+      CHECK(queue.reserved() == 5);
+      CHECK(queue.size() == 1);
+      queue.shrink_to_fit();
+      CHECK(queue.reserved() == 5);
+    }
   }
 
   SECTION("clear") {
@@ -797,6 +810,16 @@ TEST_CASE("cqueue") {
     CHECK(queue1.reserved() == 8);
     CHECK(queue1.front() == 2);
     CHECK(queue1.back() == 3);
+
+    // container swap
+    {
+      cqueue<int, custom_allocator<int>> queue1;
+      cqueue<int, custom_allocator<int>> queue2;
+      queue1.push(1);
+      queue1.swap(queue2);
+      CHECK(queue1.empty());
+      CHECK(queue2.size() == 1);
+    }
   }
 
   SECTION("capacity = 2 (without realloc)") {
