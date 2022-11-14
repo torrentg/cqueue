@@ -39,12 +39,12 @@
 22. ~~Default-initialise member mAllocator - allocator_type mAllocator = {};~~
 23. ~~Add -Weffc++ as compiler option~~
 24. resize() private -> public + review standar.
-25. push(T &&val) -> push(T val)
+25. ~~push(T &&val) -> push(T val) - not applied, std::vector have both~~
 26. ~~Constructor cqueue(const cqueue &other) forwards to cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())}~~
 27. ~~Review cqueue(cqueue &&other, const_alloc_reference alloc) implementation~~
 28. ~~Because operator=() uses copy-and-swap, there's no need to test for self-assignment.~~
 29. ~~swap() itself functions perfectly well for self-swap, so we can eliminate the condition there.~~
 30. ~~Use 'trailing return type' (return type = auto)~~
-31. Use deallocator in resize()
+31. ~~In resize() destroy elements in reverse order~~
 32. Add reference to review2 + contributors
 33. Add support for propagate_on_container_move_assignment + propagate_on_container_copy_assignment

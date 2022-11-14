@@ -273,7 +273,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
 {
   resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
-    push(other[i]);
+    push_back(other[i]);
   }
 }
 
@@ -453,8 +453,8 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
         allocator_traits::construct(mAllocator, tmp + i, mData[index]);
       }
     } catch (...) {
-      for (size_type j = 0; j < i; ++j) {
-        allocator_traits::destroy(mAllocator, tmp + j);
+      while (i-- > 0) {
+        allocator_traits::destroy(mAllocator, tmp + i);
       }
       allocator_traits::deallocate(mAllocator, tmp, len);
       throw;
