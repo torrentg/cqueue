@@ -26,15 +26,15 @@
 9. ~~Create emplace_front()~~
 10. ~~DEFAULT_RESERVE -> MIN_ALLOCATE~~
 11. ~~Solve error in shrink_to_fit(). This method will just not shrink at all if there are less than DEFAULT_RESERVED elements in the queue (mLength), even if you have a huge amount of memory reserved (mReserved)!~~
-12. resizeIfRequired() + resize(): solve case n == mReserved.
+12. ~~resizeIfRequired() + resize(): solve case n == mReserved.~~
 13. solve case when resize(0)
-14. Write the safer pos == size() ? size() : pos + 1
+14. ~~Write the safer pos == size() ? size() : pos + 1 --> using clamp~~
 15. ~~using allocator_traits = std::allocator_traits<allocator_type>;~~
 16. ~~Use a single implementation for iterators.~~
 17. ~~The iterator size comparison operators can be reduced to a single <=>.~~
 18. Convert identifiers from camelCase to snake_case.
 19. ~~Review [[nodiscard]] usage.~~
-20. Consider adding cbegin() and cend().
+20. ~~Consider adding cbegin() and cend().~~
 21. Consider adding reversed begin/end iterator functions.
 22. ~~Default-initialise member mAllocator - allocator_type mAllocator = {};~~
 23. ~~Add -Weffc++ as compiler option~~

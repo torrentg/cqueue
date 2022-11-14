@@ -60,6 +60,7 @@ class cqueue {
         iter(const iter<std::remove_const_t<value_type>> &other) requires std::is_const_v<value_type> : 
             queue{other.queue}, pos{other.pos} {}
         iter(const iter<value_type> &other) = default;
+        iter& operator=(const iter& other) = default;
         reference operator*() {
             return queue->operator[](cast(pos));
         }
@@ -230,10 +231,14 @@ class cqueue {
     constexpr iterator begin() noexcept { return iterator(this, 0); }
     //! Returns an iterator to the element following the last element.
     constexpr iterator end() noexcept { return iterator(this, static_cast<difference_type>(size())); }
-    //! Returns an iterator to the first element.
+    //! Returns a constant iterator to the first element.
     constexpr const_iterator begin() const noexcept { return const_iterator(this, 0); }
-    //! Returns an iterator to the element following the last element.
+    //! Returns a constant iterator to the element following the last element.
     constexpr const_iterator end() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
+    //! Returns a constant iterator to the first element.
+    constexpr const_iterator cbegin() const noexcept { return const_iterator(this, 0); }
+    //! Returns a constant iterator to the element following the last element.
+    constexpr const_iterator cend() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
 
     //! Clear content.
     void clear() noexcept;
@@ -383,7 +388,7 @@ constexpr auto gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const 
  */
 template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
-  if (n < mReserved) {
+  if (n <= mReserved) {
     [[likely]]
     return;
   } else if (n > mCapacity) {
@@ -402,7 +407,7 @@ constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
  */
 template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
-  if (n < mReserved) {
+  if (n <= mReserved) {
     return;
   } else if (n > mCapacity) {
     throw std::length_error("cqueue capacity exceeded");
@@ -420,9 +425,10 @@ constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
     return;
   } if (mLength == 0) {
     reset();
+  } else if (mLength == mReserved || mReserved <= MIN_ALLOCATE) {
+    return;
   } else {
-    auto minLen = std::min(mCapacity, MIN_ALLOCATE);
-    resize(std::max(minLen, mLength));
+    resize(mLength);
   }
 }
 

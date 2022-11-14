@@ -190,6 +190,19 @@ TEST_CASE("cqueue") {
       CHECK(queue.size() == 0);
     }
     {
+      cqueue<int> queue(20);
+      CHECK(queue.reserved() == 0);
+      for (int i = 0; i < 8; i++) {
+        queue.push(i);
+      }
+      CHECK(queue.size() == 8);
+      CHECK(queue.reserved() == 8);
+      int *ptr = &queue[0];
+      queue.reserve(8);
+      CHECK(queue.reserved() == 8);
+      CHECK(&queue[0] == ptr);
+    }
+    {
       cqueue<int> queue(10000000);
       CHECK(queue.capacity() == 10000000);
       CHECK(queue.reserved() == 0);
@@ -604,6 +617,8 @@ TEST_CASE("cqueue") {
     xqueue.push("2");
     xqueue.push("3");
     const cqueue<string> &queue = xqueue;
+    CHECK(queue.begin() == xqueue.cbegin());
+    CHECK(queue.end() == xqueue.cend());
     {
       auto it = queue.begin();
       CHECK(!it->empty());
