@@ -1,6 +1,6 @@
 # cqueue
 
-cqueue is a simple C++20 header-only [circular queue](https://en.wikipedia.org/wiki/Circular_buffer) container.
+cqueue is a C++20 header-only [circular queue](https://en.wikipedia.org/wiki/Circular_buffer) container.
 
 | Statement | Length | Reserved | Content |
 |:--------- |:------:|:--------:|:--------|
@@ -25,8 +25,8 @@ cqueue is similar to a std::vector
 
 ... but it behaves like a queue
 
-* push() add an element at the end
-* pop() remove the first element
+* `push()` add an element at the end
+* `pop()` remove the first element
 * Cannot insert or remove items in the middle
 
 ... where
@@ -37,8 +37,8 @@ cqueue is similar to a std::vector
 ... having some extras
 
 * Access index always is checked
-* push_front() support
-* pop_back() support
+* `push_front()` support
+* `pop_back()` support
 
 ... and some lacks
 
@@ -47,32 +47,29 @@ cqueue is similar to a std::vector
 
 ## Motivation
 
-Memory management (alloc/free) done by `std::deque` is very intense in queue-like operations (push/pop). [deque-mem.cpp](deque-mem.cpp) and [cqueue-mem.cpp](cqueue-mem.cpp) implements a trivial
+Memory management (alloc/free) done by `std::deque` is very intense in queue-like operations (push/pop). [deque-prof.cpp](deque-prof.cpp) and [cqueue-prof.cpp](cqueue-prof.cpp) implements a trivial
 use case of a queue where we push _n_ items and pop _n_ items repeatedly.
 
 Using [`std::deque`](https://en.cppreference.com/w/cpp/container/deque):
 
-<pre><code>> valgrind --leak-check=full --show-leak-kinds=all ./deque-mem
+<pre><code>> valgrind --leak-check=full --show-leak-kinds=all ./deque-prof
 ...
-==1323828== HEAP SUMMARY:
-==1323828==     in use at exit: 0 bytes in 0 blocks
-==1323828==   total heap usage: <mark>15,628 allocs, 15,628 frees, 8,073,280 bytes allocated</mark>
+==10003== HEAP SUMMARY:
+==10003==     in use at exit: 0 bytes in 0 blocks
+==10003==   total heap usage: <mark>156,253 allocs, 156,253 frees, 80,073,280 bytes allocated</mark>
 ...
 </code></pre>
 
 Using [`gto:cqueue`](https://github.com/torrentg/cqueue):
 
-<pre><code>> valgrind --leak-check=full --show-leak-kinds=all ./cqueue-mem
+<pre><code>> valgrind --leak-check=full --show-leak-kinds=all ./cqueue-prof
 ...
-==1323952== HEAP SUMMARY:
-==1323952==     in use at exit: 0 bytes in 0 blocks
-==1323952==   total heap usage: <mark>6 allocs, 6 frees, 73,024 bytes allocated</mark>
+==10024== HEAP SUMMARY:
+==10024==     in use at exit: 0 bytes in 0 blocks
+==10024==   total heap usage: <mark>4 allocs, 4 frees, 72,928 bytes allocated</mark>
 ...
 </code></pre>
 
-## Performance
-
-TODO
 ## Usage
 
 Drop off [`cqueue.hpp`](cqueue.hpp) in your project and start using the cqueue.
@@ -95,8 +92,12 @@ firefox coverage/index.html &
 
 ## Contributors
 
-* **Gerard Torrent** - _Initial work_ - [torrentg](https://github.com/torrentg/)
-* G. Sliepen - [Code review (I)](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue) - [G. Sliepen](https://codereview.stackexchange.com/users/129343/g-sliepen)
+| Name | Contribution |
+|:-----|:-------------|
+| [Gerard Torrent](https://github.com/torrentg/) | Initial work<br/>Code maintainer|
+| [G. Sliepen](https://codereview.stackexchange.com/users/129343/g-sliepen) | [Code review (I)](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)<br/>[Code review (II)](https://codereview.stackexchange.com/questions/281152/a-not-so-simple-c20-circular-queue) |
+| [Toby Speight](https://codereview.stackexchange.com/users/75307/toby-speight) | [Code review (II)](https://codereview.stackexchange.com/questions/281152/a-not-so-simple-c20-circular-queue) |
+
 
 ## License
 

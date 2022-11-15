@@ -1,21 +1,22 @@
 CXXFLAGS= -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference -Weffc++
 
-all: example tests coverage mem
+all: example tests coverage profiler
 
-mem: cqueue-mem.cpp deque-mem.cpp
-	g++ -std=c++20 -g -o deque-mem deque-mem.cpp
-	g++ -std=c++20 -g -o cqueue-mem cqueue-mem.cpp
+profiler: cqueue-prof.cpp deque-prof.cpp
+	$(CXX) -std=c++20 -pg -g -o deque-prof deque-prof.cpp
+	$(CXX) -std=c++20 -pg -g -o cqueue-prof cqueue-prof.cpp
+	./cqueue-prof && gprof cqueue-prof gmon.out > cqueue-prof.gmon
 
 example: cqueue-example.cpp
-	g++ -O2 $(CXXFLAGS) -o cqueue-example cqueue-example.cpp
+	$(CXX) -O2 $(CXXFLAGS) -o cqueue-example cqueue-example.cpp
 	./cqueue-example
 
 tests: cqueue-tests.cpp
-	g++ -g $(CXXFLAGS) -o cqueue-tests cqueue-tests.cpp
+	$(CXX) -g $(CXXFLAGS) -o cqueue-tests cqueue-tests.cpp
 	./cqueue-tests
 
 coverage: cqueue-tests.cpp
-	g++ --coverage -O0 $(CXXFLAGS) -o cqueue-coverage cqueue-tests.cpp -lgcov
+	$(CXX) --coverage -O0 $(CXXFLAGS) -o cqueue-coverage cqueue-tests.cpp -lgcov
 	./cqueue-coverage
 	mkdir coverage
 	lcov --no-external -d . -o coverage/coverage.info -c
@@ -27,9 +28,9 @@ clean:
 	rm -f cqueue-tests
 	rm -f cqueue-coverage
 	rm -f cqueue-example
-	rm -f cqueue-mem 
-	rm -f deque-mem
+	rm -f cqueue-prof
+	rm -f deque-prof
 	rm -f *.gcda *.gcno
 	rm -rf coverage
-	rm -f *gmon*
+	rm -f gmon.out *.gmon
 	rm -f massif*

@@ -4,9 +4,9 @@
 #define NUM_ITERATIONS 1000000
 #define BATCH_SIZE 20
 
-// g++ -std=c++20 -g -o deque-mem deque-mem.cpp
-// valgrind --leak-check=full --show-leak-kinds=all ./deque-mem
-// valgrind --tool=massif --time-unit=B --threshold=0.0 ./deque-mem
+// g++ -std=c++20 -g -o deque-prof deque-prof.cpp
+// valgrind --leak-check=full --show-leak-kinds=all ./deque-prof
+// valgrind --tool=massif --time-unit=B --threshold=0.0 ./deque-prof
 // ms_print --threshold=0.0 massif.out.1319585 > massif.out.deque
 
 using namespace std;

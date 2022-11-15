@@ -13,7 +13,7 @@ namespace gto {
 
 /**
  * @brief Circular queue.
- * @details Iterators are invalidated by: 
+ * @details Iterators are invalidated by:
  *          push(), push_back(), push_front(), 
  *          pop(), pop_back(), pop_front(),
  *          emplace(), emplace_back(), emplace_front(),
@@ -83,7 +83,7 @@ class cqueue {
 
   public: // declarations
 
-    // Aliases  
+    // Aliases
     using value_type = T;
     using reference = value_type &;
     using const_reference = const value_type &;
@@ -240,13 +240,13 @@ class cqueue {
     constexpr reverse_iterator rbegin() noexcept { return std::make_reverse_iterator(end()); }
     //! Returns a reverse iterator to the element following the last element of the reversed vector.
     constexpr reverse_iterator rend() noexcept { return std::make_reverse_iterator(begin()); }
-    //! Returns a reverse iterator to the first element of the reversed vector.
+    //! Returns a constant reverse iterator to the first element of the reversed vector.
     constexpr const_reverse_iterator rbegin() const noexcept { return std::make_reverse_iterator(end()); }
-    //! Returns a reverse iterator to the element following the last element of the reversed vector.
+    //! Returns a constant reverse iterator to the element following the last element of the reversed vector.
     constexpr const_reverse_iterator rend() const noexcept { return std::make_reverse_iterator(begin()); }
-    //! Returns a reverse iterator to the first element of the reversed vector.
+    //! Returns a constant reverse iterator to the first element of the reversed vector.
     constexpr const_reverse_iterator crbegin() const noexcept { return std::make_reverse_iterator(end()); }
-    //! Returns a reverse iterator to the element following the last element of the reversed vector.
+    //! Returns a constant reverse iterator to the element following the last element of the reversed vector.
     constexpr const_reverse_iterator crend() const noexcept { return std::make_reverse_iterator(begin()); }
 
     //! Clear content.
@@ -309,7 +309,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_referenc
  * @param[in] other Queue to copy.
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator> & gto::cqueue<T, Allocator>::operator=(const cqueue &other) {
+constexpr auto gto::cqueue<T, Allocator>::operator=(const cqueue &other) -> cqueue& {
   cqueue tmp(other);
   this->swap(tmp);
   return *this;
@@ -401,7 +401,7 @@ constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
     [[likely]]
     return;
   } else if (n > mCapacity) {
-    [[unlikely]] 	
+    [[unlikely]]
     throw std::length_error("cqueue capacity exceeded");
   } else {
     size_type len = getNewMemoryLength(n);
@@ -432,7 +432,7 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
   if (mReserved == 0) {
     return;
-  } if (mLength == 0) {
+  } else if (mLength == 0) {
     reset();
   } else if (mLength == mReserved || mReserved <= MIN_ALLOCATE) {
     return;
@@ -547,7 +547,7 @@ constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
  */
 template<std::copyable T, typename Allocator>
 template <class... Args>
-constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace_back(Args&&... args) {
+constexpr auto gto::cqueue<T, Allocator>::emplace_back(Args&&... args) -> reference {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
   allocator_traits::construct(mAllocator, mData + index, std::forward<Args>(args)...);
@@ -561,7 +561,7 @@ constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator
  */
 template<std::copyable T, typename Allocator>
 template <class... Args>
-constexpr typename gto::cqueue<T, Allocator>::reference gto::cqueue<T, Allocator>::emplace_front(Args&&... args) {
+constexpr auto gto::cqueue<T, Allocator>::emplace_front(Args&&... args) -> reference {
   resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
   allocator_traits::construct(mAllocator, mData + index, std::forward<Args>(args)...);
