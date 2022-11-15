@@ -18,7 +18,7 @@
     ms_print --threshold=0.0 massif.out.xxxxxx > massif.out.cqueue
     ```
 
-4. Considere to add reverse iterators
+4. ~~Considere to add reverse iterators~~
 5. ~~Rely on member-value-initialization instead on explicit value on constructor.~~
 6. ~~Define MAX_CAPACITY~~
 7. ~~Let emplace() and push() return a reference~~
@@ -35,7 +35,7 @@
 18. Convert identifiers from camelCase to snake_case.
 19. ~~Review [[nodiscard]] usage.~~
 20. ~~Consider adding cbegin() and cend().~~
-21. Consider adding reversed begin/end iterator functions.
+21. ~~Consider adding reversed begin/end iterator functions. --> use std::make_reverse_iterator~~
 22. ~~Default-initialise member mAllocator - allocator_type mAllocator = {};~~
 23. ~~Add -Weffc++ as compiler option~~
 24. resize() private -> public + review standar.

@@ -518,13 +518,9 @@ TEST_CASE("cqueue") {
     CHECK(it < queue.end());
     ++it;
     CHECK(it == queue.end());
-    ++it;
-    CHECK(it == queue.end());
     const cqueue<int> &xqueue = const_cast<const cqueue<int>&>(queue);
     auto xit = xqueue.begin();
-    //CHECK(xit < xqueue.end());
-    ++xit;
-    CHECK(xit == xqueue.end());
+    CHECK(xit < xqueue.end());
     ++xit;
     CHECK(xit == xqueue.end());
   }
@@ -554,7 +550,6 @@ TEST_CASE("cqueue") {
       CHECK(*it == "2");
       CHECK(*(++it) == "3");
       CHECK(++it == queue.end());
-      CHECK(++it == queue.end());
     }
     {
       auto it = queue.end();
@@ -562,7 +557,6 @@ TEST_CASE("cqueue") {
       CHECK(*it == "3");
       CHECK(*(--it) == "2");
       it = queue.begin();
-      CHECK(--it == --queue.begin());
       CHECK(--it == --queue.begin());
     }
     {
@@ -582,7 +576,7 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       it1 += 2;
       CHECK(it1 == it3);
-      it1 += 1000;
+      it1 += 1;
       CHECK(it1 == queue.end());
     }
     {
@@ -590,7 +584,7 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       it3 -= 2;
       CHECK(it1 == it3);
-      it1 -= 1000;
+      it1 -= 1;
       CHECK(it1 == --queue.begin());
     }
     {
@@ -598,10 +592,10 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       CHECK(it1 + 2 == it3);
       CHECK(2 + it1 == it3);
-      CHECK(it1 + 1000 == queue.end());
+      CHECK(it1 + 3 == queue.end());
       CHECK(it3 - 2 == it1);
       CHECK(2 - it3 == it1);
-      CHECK(it1 - 1000 == --queue.begin());
+      CHECK(it1 - 1 == --queue.begin());
     }
     {
       auto it1 = queue.begin();
@@ -639,7 +633,6 @@ TEST_CASE("cqueue") {
       CHECK(*it == "2");
       CHECK(*(++it) == "3");
       CHECK(++it == queue.end());
-      CHECK(++it == queue.end());
     }
     {
       auto it = queue.end();
@@ -647,7 +640,6 @@ TEST_CASE("cqueue") {
       CHECK(*it == "3");
       CHECK(*(--it) == "2");
       it = queue.begin();
-      CHECK(--it == --queue.begin());
       CHECK(--it == --queue.begin());
     }
     {
@@ -667,7 +659,7 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       it1 += 2;
       CHECK(it1 == it3);
-      it1 += 1000;
+      it1 += 1;
       CHECK(it1 == queue.end());
     }
     {
@@ -675,7 +667,7 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       it3 -= 2;
       CHECK(it1 == it3);
-      it1 -= 1000;
+      it1 -= 1;
       CHECK(it1 == --queue.begin());
     }
     {
@@ -683,14 +675,177 @@ TEST_CASE("cqueue") {
       auto it3 = ++(++queue.begin());
       CHECK(it1 + 2 == it3);
       CHECK(2 + it1 == it3);
-      CHECK(it1 + 1000 == queue.end());
+      CHECK(it1 + 3 == queue.end());
       CHECK(it3 - 2 == it1);
       CHECK(2 - it3 == it1);
-      CHECK(it1 - 1000 == --queue.begin());
+      CHECK(it1 - 1 == --queue.begin());
     }
     {
       auto it1 = queue.begin();
       auto it3 = ++(++queue.begin());
+      CHECK(it3 - it1 == +2);
+      CHECK(it1 - it3 == -2);
+    }
+  }
+
+  SECTION("reverse_iterator") {
+    cqueue<string> queue;
+    queue.push("1");
+    queue.push("2");
+    queue.push("3");
+    {
+      auto it = queue.rbegin();
+      //CHECK(!it->empty()); // reverse_iterator 'feature'
+      CHECK(!(*it).empty());
+      CHECK(it[0] == "3");
+      CHECK(it[1] == "2");
+      CHECK(it[2] == "1");
+      CHECK_THROWS(it[3]);
+      CHECK_THROWS(it[-1]);
+      ++it;
+      CHECK(it[-1] == "3");
+      CHECK(it[0] == "2");
+      CHECK(it[1] == "1");
+    }
+    {
+      auto it = queue.rbegin();
+      CHECK(it++ == queue.rbegin());
+      CHECK(*it == "2");
+      CHECK(*(++it) == "1");
+      CHECK(++it == queue.rend());
+    }
+    {
+      auto it = queue.rend();
+      CHECK(it-- == queue.rend());
+      CHECK(*it == "1");
+      CHECK(*(--it) == "2");
+      it = queue.rbegin();
+      CHECK(--it == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it2 = ++queue.rbegin();
+      CHECK(it1 == it1);
+      CHECK(it1 != it2);
+      CHECK(it1 <  it2);
+      CHECK(it2 >  it1);
+      CHECK(it1 <= it1);
+      CHECK(it1 <= it2);
+      CHECK(it1 >= it1);
+      CHECK(it2 >= it1);
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      it1 += 2;
+      CHECK(it1 == it3);
+      it1 += 1;
+      CHECK(it1 == queue.rend());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      it3 -= 2;
+      CHECK(it1 == it3);
+      it1 -= 1;
+      CHECK(it1 == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      CHECK(it1 + 2 == it3);
+      CHECK(2 + it1 == it3);
+      CHECK(it1 + 3 == queue.rend());
+      CHECK(it3 - 2 == it1);
+      //CHECK(2 - it3 == it1); // reverse_iterator 'feature'
+      CHECK(it1 - 1 == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      CHECK(it3 - it1 == +2);
+      CHECK(it1 - it3 == -2);
+    }
+  }
+
+  SECTION("const_reverse_iterator") {
+    cqueue<string> xqueue;
+    xqueue.push("1");
+    xqueue.push("2");
+    xqueue.push("3");
+    const cqueue<string> &queue = xqueue;
+    CHECK(queue.rbegin() == xqueue.crbegin());
+    CHECK(queue.rend() == xqueue.crend());
+    {
+      auto it = queue.rbegin();
+      //CHECK(!it->empty()); // reverse_iterator 'feature'
+      CHECK(!(*it).empty());
+      CHECK(it[0] == "3");
+      CHECK(it[1] == "2");
+      CHECK(it[2] == "1");
+      CHECK_THROWS(it[3]);
+      CHECK_THROWS(it[-1]);
+      ++it;
+      CHECK(it[-1] == "3");
+      CHECK(it[0] == "2");
+      CHECK(it[1] == "1");
+    }
+    {
+      auto it = queue.rbegin();
+      CHECK(it++ == queue.rbegin());
+      CHECK(*it == "2");
+      CHECK(*(++it) == "1");
+      CHECK(++it == queue.rend());
+    }
+    {
+      auto it = queue.rend();
+      CHECK(it-- == queue.rend());
+      CHECK(*it == "1");
+      CHECK(*(--it) == "2");
+      it = queue.rbegin();
+      CHECK(--it == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it2 = ++queue.rbegin();
+      CHECK(it1 == it1);
+      CHECK(it1 != it2);
+      CHECK(it1 <  it2);
+      CHECK(it2 >  it1);
+      CHECK(it1 <= it1);
+      CHECK(it1 <= it2);
+      CHECK(it1 >= it1);
+      CHECK(it2 >= it1);
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      it1 += 2;
+      CHECK(it1 == it3);
+      it1 += 1;
+      CHECK(it1 == queue.rend());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      it3 -= 2;
+      CHECK(it1 == it3);
+      it1 -= 1;
+      CHECK(it1 == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
+      CHECK(it1 + 2 == it3);
+      CHECK(2 + it1 == it3);
+      CHECK(it1 + 3 == queue.rend());
+      CHECK(it3 - 2 == it1);
+      //CHECK(2 - it3 == it1); // reverse_iterator 'feature'
+      CHECK(it1 - 1 == --queue.rbegin());
+    }
+    {
+      auto it1 = queue.rbegin();
+      auto it3 = ++(++queue.rbegin());
       CHECK(it3 - it1 == +2);
       CHECK(it1 - it3 == -2);
     }
@@ -950,6 +1105,27 @@ TEST_CASE("cqueue") {
     for (int i = 0; i < 9; i++) {
       CHECK(queue[static_cast<size_t>(i)] == i + 1);
     }
+  }
+
+  SECTION("sort") {
+    cqueue<int> queue;
+    queue.push(5);
+    queue.push(1);
+    queue.push(7);
+    queue.push(3);
+    queue.push(9);
+    std::sort(queue.begin(), queue.end());
+    CHECK(queue[0] == 1);
+    CHECK(queue[1] == 3);
+    CHECK(queue[2] == 5);
+    CHECK(queue[3] == 7);
+    CHECK(queue[4] == 9);
+    std::sort(queue.rbegin(), queue.rend());
+    CHECK(queue[0] == 9);
+    CHECK(queue[1] == 7);
+    CHECK(queue[2] == 5);
+    CHECK(queue[3] == 3);
+    CHECK(queue[4] == 1);
   }
 
 }

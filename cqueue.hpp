@@ -48,27 +48,21 @@ class cqueue {
         auto cast(difference_type n) const {
           return (n < 0 ? queue->size() : static_cast<size_type>(n));
         }
-        auto size() const {
-          return static_cast<difference_type>(queue->size());
-        }
-        auto clamp(difference_type p) const {
-          return std::clamp<difference_type>(p, -1, size());
-        }
       public:
         explicit iter(queue_type *o, difference_type p = 0) : 
-            queue{o}, pos{clamp(p)} {}
+            queue{o}, pos{p} {}
         iter(const iter<std::remove_const_t<value_type>> &other) requires std::is_const_v<value_type> : 
             queue{other.queue}, pos{other.pos} {}
         iter(const iter<value_type> &other) = default;
         iter& operator=(const iter& other) = default;
         reference operator*() {
-            return queue->operator[](cast(pos));
+          return queue->operator[](cast(pos));
         }
         pointer operator->() {
-            return &(queue->operator[](cast(pos)));
+          return &(queue->operator[](cast(pos)));
         }
         reference operator[](difference_type rhs) const {
-            return queue->operator[](cast(pos + rhs));
+          return queue->operator[](cast(pos + rhs));
         }
         auto operator<=>(const iter &rhs) const {
             return (queue == rhs.queue ? pos <=> rhs.pos : std::partial_ordering::unordered);
@@ -78,8 +72,8 @@ class cqueue {
         iter& operator--() { return *this += -1; }
         [[nodiscard]] iter operator++(int) { iter tmp{queue, pos}; ++*this; return tmp; }
         [[nodiscard]] iter operator--(int) { iter tmp{queue, pos}; --*this; return tmp; }
-        auto& operator+=(difference_type rhs) { pos = clamp(pos + rhs); return *this; }
-        auto& operator-=(difference_type rhs) { pos = clamp(pos - rhs); return *this; }
+        auto& operator+=(difference_type rhs) { pos += rhs; return *this; }
+        auto& operator-=(difference_type rhs) { pos -= rhs; return *this; }
         auto operator+(difference_type rhs) const { return iter{queue, pos + rhs}; }
         auto operator-(difference_type rhs) const { return iter{queue, pos - rhs}; }
         friend iter operator+(difference_type lhs, const iter &rhs) { return iter{rhs.queue, lhs + rhs.pos}; }
@@ -102,6 +96,8 @@ class cqueue {
     using allocator_traits = std::allocator_traits<allocator_type>;
     using iterator = iter<value_type>;
     using const_iterator = iter<const value_type>;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   private: // static members
 
@@ -239,6 +235,19 @@ class cqueue {
     constexpr const_iterator cbegin() const noexcept { return const_iterator(this, 0); }
     //! Returns a constant iterator to the element following the last element.
     constexpr const_iterator cend() const noexcept { return const_iterator(this, static_cast<difference_type>(size())); }
+
+    //! Returns a reverse iterator to the first element of the reversed vector.
+    constexpr reverse_iterator rbegin() noexcept { return std::make_reverse_iterator(end()); }
+    //! Returns a reverse iterator to the element following the last element of the reversed vector.
+    constexpr reverse_iterator rend() noexcept { return std::make_reverse_iterator(begin()); }
+    //! Returns a reverse iterator to the first element of the reversed vector.
+    constexpr const_reverse_iterator rbegin() const noexcept { return std::make_reverse_iterator(end()); }
+    //! Returns a reverse iterator to the element following the last element of the reversed vector.
+    constexpr const_reverse_iterator rend() const noexcept { return std::make_reverse_iterator(begin()); }
+    //! Returns a reverse iterator to the first element of the reversed vector.
+    constexpr const_reverse_iterator crbegin() const noexcept { return std::make_reverse_iterator(end()); }
+    //! Returns a reverse iterator to the element following the last element of the reversed vector.
+    constexpr const_reverse_iterator crend() const noexcept { return std::make_reverse_iterator(begin()); }
 
     //! Clear content.
     void clear() noexcept;
