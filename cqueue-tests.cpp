@@ -695,7 +695,7 @@ TEST_CASE("cqueue") {
     queue.push("3");
     {
       auto it = queue.rbegin();
-      //CHECK(!it->empty()); // reverse_iterator 'feature'
+      CHECK(!it->empty());
       CHECK(!(*it).empty());
       CHECK(it[0] == "3");
       CHECK(it[1] == "2");
@@ -778,7 +778,7 @@ TEST_CASE("cqueue") {
     CHECK(queue.rend() == xqueue.crend());
     {
       auto it = queue.rbegin();
-      //CHECK(!it->empty()); // reverse_iterator 'feature'
+      CHECK(!it->empty());
       CHECK(!(*it).empty());
       CHECK(it[0] == "3");
       CHECK(it[1] == "2");

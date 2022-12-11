@@ -55,17 +55,17 @@ class cqueue {
             queue{other.queue}, pos{other.pos} {}
         iter(const iter<value_type> &other) = default;
         iter& operator=(const iter& other) = default;
-        reference operator*() {
+        reference operator*() const {
           return queue->operator[](cast(pos));
         }
-        pointer operator->() {
+        pointer operator->() const {
           return &(queue->operator[](cast(pos)));
         }
         reference operator[](difference_type rhs) const {
           return queue->operator[](cast(pos + rhs));
         }
         auto operator<=>(const iter &rhs) const {
-            return (queue == rhs.queue ? pos <=> rhs.pos : std::partial_ordering::unordered);
+          return (queue == rhs.queue ? pos <=> rhs.pos : std::partial_ordering::unordered);
         }
         bool operator==(const iter &rhs) const { return ((*this <=> rhs) == 0); }
         iter& operator++() { return *this += 1; }
