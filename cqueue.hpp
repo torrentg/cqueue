@@ -21,7 +21,7 @@ namespace gto {
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
- * @version 1.0.1
+ * @version 1.0.2
  */
 template<std::copyable T, typename Allocator = std::allocator<T>>
 class cqueue {
@@ -49,8 +49,8 @@ class cqueue {
           return (n < 0 ? queue->size() : static_cast<size_type>(n));
         }
       public:
-        explicit iter(queue_type *o, difference_type p = 0) : 
-            queue{o}, pos{p} {}
+        explicit iter(queue_type *other, difference_type position = 0) : 
+            queue{other}, pos{position} {}
         iter(const iter<std::remove_const_t<value_type>> &other) requires std::is_const_v<value_type> : 
             queue{other.queue}, pos{other.pos} {}
         iter(const iter<value_type> &other) = default;
@@ -135,7 +135,7 @@ class cqueue {
     //! Resize buffer.
     constexpr void resizeIfRequired(size_type n);
     //! Resize buffer.
-    void resize(size_type n);
+    void resize(size_type len);
     //! Clear and dealloc memory (preserve capacity and allocator).
     void reset() noexcept;
 
@@ -165,7 +165,7 @@ class cqueue {
     //! Copy assignment.
     constexpr cqueue & operator=(const cqueue &other);
     //! Move assignment.
-    constexpr cqueue & operator=(cqueue &&other) { this->swap(other); return *this; }
+    constexpr cqueue & operator=(cqueue &&other) noexcept { this->swap(other); return *this; }
 
     //! Return container allocator.
     constexpr allocator_type get_allocator() const noexcept { return mAllocator; }
@@ -252,7 +252,7 @@ class cqueue {
     //! Clear content.
     void clear() noexcept;
     //! Swap content.
-    constexpr void swap (cqueue &x) noexcept;
+    constexpr void swap (cqueue &other) noexcept;
     //! Ensure buffer size.
     constexpr void reserve(size_type n);
     //! Shrink reserved memory to current size.
@@ -271,9 +271,8 @@ constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_refe
 {
   if (capacity > MAX_CAPACITY) {
     throw std::length_error("cqueue max capacity exceeded");
-  } else {
-    mCapacity = (capacity == 0 ? MAX_CAPACITY : capacity);
   }
+  mCapacity = (capacity == 0 ? MAX_CAPACITY : capacity);
 }
 
 /**
@@ -300,8 +299,8 @@ constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_referenc
   if (alloc == other.mAllocator) {
     swap(other);
   } else {
-    cqueue q{other, alloc};
-    swap(q);
+    cqueue aux{other, alloc};
+    swap(aux);
   }
 }
 
@@ -333,9 +332,8 @@ template<std::copyable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
-  } else {
-    return getUncheckedIndex(pos);
   }
+  return getUncheckedIndex(pos);
 }
 
 /**
@@ -418,11 +416,13 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
   if (n <= mReserved) {
     return;
-  } else if (n > mCapacity) {
-    throw std::length_error("cqueue capacity exceeded");
-  } else {
-    resize(n);
   }
+
+  if (n > mCapacity) {
+    throw std::length_error("cqueue capacity exceeded");
+  }
+
+  resize(n);
 }
 
 /**
@@ -432,7 +432,9 @@ template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
   if (mReserved == 0) {
     return;
-  } else if (mLength == 0) {
+  }
+
+  if (mLength == 0) {
     reset();
   } else if (mLength == mReserved || mReserved <= MIN_ALLOCATE) {
     return;
@@ -461,15 +463,15 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
   }
   else {
     // copy elements from mData to tmp
-    size_type i = 0;
+    size_type pos = 0;
     try {
-      for (i = 0; i < mLength; ++i) {
-        size_type index = getUncheckedIndex(i);
-        allocator_traits::construct(mAllocator, tmp + i, mData[index]);
+      for (pos = 0; pos < mLength; ++pos) {
+        size_type index = getUncheckedIndex(pos);
+        allocator_traits::construct(mAllocator, tmp + pos, mData[index]);
       }
     } catch (...) {
-      while (i-- > 0) {
-        allocator_traits::destroy(mAllocator, tmp + i);
+      while (pos-- > 0) {
+        allocator_traits::destroy(mAllocator, tmp + pos);
       }
       allocator_traits::deallocate(mAllocator, tmp, len);
       throw;

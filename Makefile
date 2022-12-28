@@ -24,6 +24,10 @@ coverage: cqueue-tests.cpp
 	lcov --remove coverage/coverage.info '*/cqueue-tests.cpp' -o coverage/coverage.info
 	genhtml -o coverage coverage/coverage.info
 
+static-analysis: cqueue.hpp
+	cppcheck --enable=all --inconclusive --suppress=unusedFunction --suppress=passedByValue --suppress=missingIncludeSystem cqueue.hpp
+	clang-tidy cqueue.hpp -checks='-*,readability-*,-readability-redundant-access-specifiers,performance-*,portability-*,misc-*,clang-analyzer-*,bugprone-*,-clang-diagnostic-error' -extra-arg=-std=c++20
+
 clean: 
 	rm -f cqueue-tests
 	rm -f cqueue-coverage
