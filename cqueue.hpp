@@ -21,7 +21,7 @@ namespace gto {
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
- * @version 1.0.2
+ * @version 1.0.3
  */
 template<std::copyable T, typename Allocator = std::allocator<T>>
 class cqueue {
@@ -49,7 +49,7 @@ class cqueue {
           return (n < 0 ? queue->size() : static_cast<size_type>(n));
         }
       public:
-        explicit iter(queue_type *other, difference_type position = 0) : 
+        explicit iter(queue_type *other = nullptr, difference_type position = 0) : 
             queue{other}, pos{position} {}
         iter(const iter<std::remove_const_t<value_type>> &other) requires std::is_const_v<value_type> : 
             queue{other.queue}, pos{other.pos} {}
@@ -146,10 +146,8 @@ class cqueue {
 
   public: // methods
 
-    //! Constructor.
-    constexpr explicit cqueue(const_alloc_reference alloc = Allocator()) : cqueue(0, alloc) {}
     //! Constructor (capacity=0 means unlimited).
-    constexpr explicit cqueue(size_type capacity, const_alloc_reference alloc = Allocator());
+    constexpr explicit cqueue(size_type capacity = 0, const_alloc_reference alloc = Allocator());
     //! Copy constructor.
     constexpr cqueue(const cqueue &other) : 
         cqueue{other, allocator_traits::select_on_container_copy_construction(other.get_allocator())} {}
@@ -157,7 +155,7 @@ class cqueue {
     constexpr cqueue(const cqueue &other, const_alloc_reference alloc);
     //! Move constructor.
     constexpr cqueue(cqueue &&other) noexcept { this->swap(other); }
-    //! Move constructor.
+    //! Move constructor with allocator.
     constexpr cqueue(cqueue &&other, const_alloc_reference alloc);
     //! Destructor.
     ~cqueue() noexcept { reset(); };

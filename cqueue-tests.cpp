@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <limits>
+#include <ranges>
 #include "catch.hpp"
 #include "cqueue.hpp"
 
@@ -1126,6 +1127,63 @@ TEST_CASE("cqueue") {
     CHECK(queue[2] == 5);
     CHECK(queue[3] == 3);
     CHECK(queue[4] == 1);
+  }
+
+  SECTION("ranges") {
+    gto::cqueue<int> numbers;
+    for (int i = 1; i <= 6; i++) {
+      numbers.push_back(i);
+    }
+
+    gto::cqueue<int> results;
+    for (auto num : numbers | std::views::filter([](int n){ return n % 2 == 0; })
+                            | std::views::transform([](int n){ return n * 2; })
+                            | std::views::reverse) {
+      results.push_back(num);
+    }
+
+    CHECK(results.size() == 3);
+    CHECK(results[0] == 12);
+    CHECK(results[1] == 8);
+    CHECK(results[2] == 4);
+  }
+
+  SECTION("subranges") {
+    gto::cqueue<int> numbers;
+    for (int i = 1; i <= 10; i++) {
+      numbers.push_back(i);
+    }
+
+    std::ranges::subrange<gto::cqueue<int>::iterator> range0 = std::ranges::subrange(numbers.begin(), numbers.end());
+    int count = 0;
+    int sum = 0;
+    for (auto x : range0) {
+      count++;
+      sum += x;
+    }
+    CHECK(count == 10);
+    CHECK(sum == 55);
+
+    auto range1 = std::ranges::subrange(numbers.begin(), numbers.begin() + 5);
+    count = 0;
+    sum = 0;
+    for (auto x : range1) {
+      count++;
+      sum += x;
+    }
+    CHECK(count == 5);
+    CHECK(sum == 15);
+
+    auto range2 = std::ranges::subrange(numbers.begin() + 5, numbers.end());
+    count = 0;
+    sum = 0;
+    for (auto x : range2) {
+      count++;
+      sum += x;
+    }
+
+    CHECK(count == 5);
+    CHECK(sum == 40);
   }
 
 }
