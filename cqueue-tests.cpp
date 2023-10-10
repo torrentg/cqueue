@@ -49,8 +49,8 @@ TEST_CASE("cqueue") {
     CHECK_THROWS(queue.front());
     CHECK_THROWS(queue.back());
     CHECK(queue.begin() == queue.end());
-    CHECK(queue.pop() == false);
-    CHECK(queue.pop_back() == false);
+    CHECK_THROWS(queue.pop());
+    CHECK_THROWS(queue.pop_back());
     CHECK_THROWS(queue[0]);
     queue.clear();
     CHECK(queue.size() == 0);
@@ -465,10 +465,10 @@ TEST_CASE("cqueue") {
 
   SECTION("pop") {
     cqueue<int> queue(5);
-    CHECK(!queue.pop());
+    CHECK_THROWS(queue.pop());
     queue.push(1);
     CHECK(queue.size() == 1);
-    queue.pop();
+    CHECK(queue.pop() == 1);
     CHECK(queue.empty());
     queue.push(1);
     queue.push(2);
@@ -476,7 +476,7 @@ TEST_CASE("cqueue") {
     queue.push(4);
     queue.push(5);
     CHECK(queue.size() == 5);
-    queue.pop();
+    CHECK(queue.pop() == 1);
     CHECK(queue.size() == 4);
     CHECK(queue.front() == 2);
     CHECK(queue.back() == 5);
@@ -484,10 +484,10 @@ TEST_CASE("cqueue") {
 
   SECTION("pop_back") {
     cqueue<int> queue(5);
-    CHECK(!queue.pop_back());
+    CHECK_THROWS(queue.pop_back());
     queue.push(1);
     CHECK(queue.size() == 1);
-    queue.pop_back();
+    CHECK(queue.pop_back() == 1);
     CHECK(queue.empty());
     queue.push(1);
     queue.push(2);
@@ -495,7 +495,7 @@ TEST_CASE("cqueue") {
     queue.push(4);
     queue.push(5);
     CHECK(queue.size() == 5);
-    queue.pop_back();
+    CHECK(queue.pop_back() == 5);
     CHECK(queue.size() == 4);
     CHECK(queue.front() == 1);
     CHECK(queue.back() == 4);
@@ -993,7 +993,7 @@ TEST_CASE("cqueue") {
     CHECK(queue.empty());
     CHECK_THROWS(queue.front());
     CHECK_THROWS(queue.back());
-    CHECK(queue.pop() == false);
+    CHECK_THROWS(queue.pop());
     CHECK_THROWS(queue[0]);
     // content = [1,.]
     queue.push(1);

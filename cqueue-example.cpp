@@ -34,7 +34,7 @@ void example1() {
   queue[1] = 99;
   std::cout << prefix << to_string(queue) << std::endl;
   std::cout << prefix << "queue[1] = " << queue[1] << std::endl;
-  queue.pop();
+  std::cout << prefix << "pop() = " << queue.pop() << std::endl;
   std::cout << prefix << to_string(queue) << std::endl;
   std::cout << prefix << "front = " << queue.front() << std::endl;
   std::cout << prefix << "back = " << queue.back() << std::endl;

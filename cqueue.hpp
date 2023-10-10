@@ -191,6 +191,9 @@ class cqueue {
     //! Construct and insert an element at the front.
     template <class... Args>
     constexpr reference emplace_front(Args&&... args);
+    //! Alias to emplace_back.
+    template <class... Args>
+    constexpr reference emplace(Args&&... args) { return emplace_back(std::forward<Args>(args)...); }
 
     //! Insert an element at the end.
     constexpr void push_back(const T &val);
@@ -200,21 +203,17 @@ class cqueue {
     constexpr void push_front(const T &val);
     //! Insert an element at the front.
     constexpr void push_front(T &&val);
-
-    //! Remove the front element.
-    constexpr bool pop_front();
-    //! Remove the back element.
-    constexpr bool pop_back();
-
-    //! Alias to emplace_back.
-    template <class... Args>
-    constexpr reference emplace(Args&&... args) { return emplace_back(std::forward<Args>(args)...); }
     //! Alias to push_back.
     constexpr void push(const T &val) { return push_back(val); }
     //! Alias to push_back.
     constexpr void push(T &&val) { return push_back(std::move(val)); }
+
+    //! Remove the front element.
+    constexpr value_type pop_front();
+    //! Remove the back element.
+    constexpr value_type pop_back();
     //! Alias to pop_front.
-    constexpr bool pop() { return pop_front(); }
+    constexpr value_type pop() { return pop_front(); }
 
     //! Returns a reference to the element at position n.
     constexpr reference operator[](size_type n) { return mData[getCheckedIndex(n)]; }
@@ -550,6 +549,7 @@ constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
 
 /**
  * @param[in] args Arguments of the new item.
+ * @return Reference to emplaced object.
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::copyable T, typename Allocator>
@@ -564,6 +564,7 @@ constexpr auto gto::cqueue<T, Allocator>::emplace_back(Args&&... args) -> refere
 
 /**
  * @param[in] args Arguments of the new item.
+ * @return Reference to emplaced object.
  * @exception std::length_error Number of values exceed queue capacity.
  */
 template<std::copyable T, typename Allocator>
@@ -579,28 +580,26 @@ constexpr auto gto::cqueue<T, Allocator>::emplace_front(Args&&... args) -> refer
 
 /**
  * @return true = an element was erased, false = no elements in the queue.
+ * @exception std::out_of_range No elements to pop.
  */
 template<std::copyable T, typename Allocator>
-constexpr bool gto::cqueue<T, Allocator>::pop_front() {
-  if (mLength == 0) {
-    return false;
-  }
+constexpr gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_front() {
+  value_type ret{std::move(front())};
   allocator_traits::destroy(mAllocator, mData + mFront);
   mFront = getUncheckedIndex(1);
   --mLength;
-  return true;
+  return ret;
 }
 
 /**
  * @return true = an element was erased, false = no elements in the queue.
+ * @exception std::out_of_range No elements to pop.
  */
 template<std::copyable T, typename Allocator>
-constexpr bool gto::cqueue<T, Allocator>::pop_back() {
-  if (mLength == 0) {
-    return false;
-  }
+constexpr gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_back() {
+  value_type ret{std::move(back())};
   size_type index = getUncheckedIndex(mLength - 1);
   allocator_traits::destroy(mAllocator, mData + index);
   --mLength;
-  return true;
+  return ret;
 }
