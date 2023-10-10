@@ -282,6 +282,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
     mAllocator{alloc},
     mCapacity{other.mCapacity}
 {
+  // use propagate_on_container_copy_assignment !!!
   resizeIfRequired(other.mLength);
   for (size_type i = 0; i < other.size(); ++i) {
     push_back(other[i]);
@@ -294,6 +295,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
  */
 template<std::copyable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
+  // use propagate_on_container_move_assignment !!!
   if (alloc == other.mAllocator) {
     swap(other);
   } else {
@@ -363,14 +365,19 @@ void gto::cqueue<T, Allocator>::reset() noexcept {
  */
 template<std::copyable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
-  if constexpr (allocator_traits::propagate_on_container_swap::value) {
-    std::swap(mAllocator, other.mAllocator);
+  if (&other != this) {
+    if constexpr (allocator_traits::propagate_on_container_swap::value) {
+      std::swap(mAllocator, other.mAllocator);
+    }
+    else if (!allocator_traits::is_always_equal::value && mAllocator != other.mAllocator) {
+      // undefined behavior
+    }
+    std::swap(mData, other.mData);
+    std::swap(mFront, other.mFront);
+    std::swap(mLength, other.mLength);
+    std::swap(mReserved, other.mReserved);
+    std::swap(mCapacity, other.mCapacity);
   }
-  std::swap(mData, other.mData);
-  std::swap(mFront, other.mFront);
-  std::swap(mLength, other.mLength);
-  std::swap(mReserved, other.mReserved);
-  std::swap(mCapacity, other.mCapacity);
 }
 
 /**
