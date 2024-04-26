@@ -21,7 +21,9 @@ namespace gto {
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
- * @version 1.0.3
+ * @version 1.0.5
+ * @tparam T Items type.
+ * @tparam Allocator Allocator.
  */
 template<std::copyable T, typename Allocator = std::allocator<T>>
 class cqueue {
