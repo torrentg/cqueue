@@ -583,7 +583,7 @@ constexpr auto gto::cqueue<T, Allocator>::emplace_front(Args&&... args) -> refer
  * @exception std::out_of_range No elements to pop.
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_front() {
+constexpr typename gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_front() {
   value_type ret{std::move(front())};
   allocator_traits::destroy(mAllocator, mData + mFront);
   mFront = getUncheckedIndex(1);
@@ -596,7 +596,7 @@ constexpr gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_f
  * @exception std::out_of_range No elements to pop.
  */
 template<std::copyable T, typename Allocator>
-constexpr gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_back() {
+constexpr typename gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_back() {
   value_type ret{std::move(back())};
   size_type index = getUncheckedIndex(mLength - 1);
   allocator_traits::destroy(mAllocator, mData + index);
