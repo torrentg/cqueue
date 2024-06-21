@@ -1,4 +1,6 @@
+#include <chrono>
 #include <deque>
+#include <iostream>
 
 #define INITIAL_SIZE 8
 #define NUM_ITERATIONS 1000000
@@ -18,6 +20,7 @@ int main() {
     queue.push_back(i);
   }
 
+  auto t1 = std::chrono::steady_clock::now();
   for (int i = 0; i < NUM_ITERATIONS; i++) {
     for (int j = 0; j < BATCH_SIZE; j++) {
       queue.push_back(i);
@@ -26,4 +29,9 @@ int main() {
       queue.pop_front();
     }
   }
+  auto t2 = std::chrono::steady_clock::now();
+  std::cout
+      << "Elapsed time in microseconds : "
+      << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()
+      << " µs\n";
 }

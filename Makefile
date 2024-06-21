@@ -3,8 +3,8 @@ CXXFLAGS= -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wn
 all: example tests coverage profiler
 
 profiler: cqueue-prof.cpp deque-prof.cpp
-	$(CXX) -std=c++20 -pg -g -o deque-prof deque-prof.cpp
-	$(CXX) -std=c++20 -pg -g -o cqueue-prof cqueue-prof.cpp
+	$(CXX) -std=c++20 -pg -g -O3 -o deque-prof deque-prof.cpp
+	$(CXX) -std=c++20 -pg -g -O3 -o cqueue-prof cqueue-prof.cpp
 	./cqueue-prof && gprof cqueue-prof gmon.out > cqueue-prof.gmon
 
 example: cqueue-example.cpp

@@ -1,5 +1,8 @@
 #include "cqueue.hpp"
 
+#include <chrono>
+#include <iostream>
+
 #define INITIAL_SIZE 8
 #define NUM_ITERATIONS 1000000
 #define BATCH_SIZE 20
@@ -18,6 +21,7 @@ int main() {
     queue.push(i);
   }
 
+  auto t1 = std::chrono::steady_clock::now();
   for (int i = 0; i < NUM_ITERATIONS; i++) {
     for (int j = 0; j < BATCH_SIZE; j++) {
       queue.push(i);
@@ -26,4 +30,9 @@ int main() {
       queue.pop();
     }
   }
+  auto t2 = std::chrono::steady_clock::now();
+  std::cout
+      << "Elapsed time in microseconds : "
+      << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()
+      << " µs\n";
 }

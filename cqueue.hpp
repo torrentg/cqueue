@@ -321,7 +321,7 @@ constexpr auto gto::cqueue<T, Allocator>::operator=(const cqueue &other) -> cque
  */
 template<std::copyable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
-  return ((mFront + pos) % (mReserved == 0 ? 1 : mReserved));
+  return (mFront + pos) & (mReserved - 1);
 }
 
 /**
