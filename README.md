@@ -97,6 +97,7 @@ firefox coverage/index.html &
 | [Gerard Torrent](https://github.com/torrentg/) | Initial work<br/>Code maintainer|
 | [G. Sliepen](https://codereview.stackexchange.com/users/129343/g-sliepen) | [Code review (I)](https://codereview.stackexchange.com/questions/281005/simple-c-circular-queue)<br/>[Code review (II)](https://codereview.stackexchange.com/questions/281152/a-not-so-simple-c20-circular-queue) |
 | [Toby Speight](https://codereview.stackexchange.com/users/75307/toby-speight) | [Code review (II)](https://codereview.stackexchange.com/questions/281152/a-not-so-simple-c20-circular-queue) |
+| [372046933](https://github.com/372046933) | [Fix compile](https://github.com/torrentg/cqueue/pull/3)<br/>[Fix performance issue](https://github.com/torrentg/cqueue/pull/4) |
 
 
 ## License

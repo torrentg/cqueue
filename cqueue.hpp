@@ -3,7 +3,9 @@
 #include <memory>
 #include <limits>
 #include <compare>
+#include <cstddef>
 #include <utility>
+#include <iterator>
 #include <concepts>
 #include <algorithm>
 #include <stdexcept>
@@ -21,7 +23,7 @@ namespace gto {
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * @note This class is not thread-safe.
- * @version 1.0.5
+ * @version 1.0.6
  * @tparam T Items type.
  * @tparam Allocator Allocator.
  */
@@ -321,7 +323,12 @@ constexpr auto gto::cqueue<T, Allocator>::operator=(const cqueue &other) -> cque
  */
 template<std::copyable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
-  return (mFront + pos) & (mReserved - 1);
+  // case power of two (performance improvement x5)
+  if (mReserved > 1 && (mReserved & (mReserved - 1)) == 0) {
+    [[likely]]
+    return ((mFront + pos) & (mReserved - 1));
+  }
+  return ((mFront + pos) % (mReserved == 0 ? 1 : mReserved));
 }
 
 /**
