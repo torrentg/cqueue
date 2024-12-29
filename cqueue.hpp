@@ -15,21 +15,25 @@ namespace gto {
 
 /**
  * @brief Circular queue.
+ * 
  * @details Iterators are invalidated by:
  *          push(), push_back(), push_front(), 
  *          pop(), pop_back(), pop_front(),
  *          emplace(), emplace_back(), emplace_front(),
  *          reserve(), shrink_to_fit(), reset() and clear().
+ * 
+ * @note This class is not thread-safe.
+ * @version 1.0.7
+ * 
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
- * @note This class is not thread-safe.
- * @version 1.0.6
+ * 
  * @tparam T Items type.
  * @tparam Allocator Allocator.
  */
 template<std::copyable T, typename Allocator = std::allocator<T>>
-class cqueue {
-
+class cqueue
+{
   private: // declarations
 
     //! cqueue iterator.
@@ -179,6 +183,8 @@ class cqueue {
     constexpr auto reserved() const noexcept { return mReserved; }
     //! Check if there are items in the queue.
     [[nodiscard]] constexpr bool empty() const noexcept { return (mLength == 0); }
+    //! Check if the queue is full.
+    [[nodiscard]] constexpr bool full() const noexcept { return (size() == mCapacity); }
 
     //! Return the first element.
     constexpr const_reference front() const { return operator[](0); }
@@ -457,7 +463,7 @@ constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
 }
 
 /**
- * @param[in] n New reserved size.
+ * @param[in] len New reserved size.
  * @details Provides strong exception guarantee.
  * @see https://en.cppreference.com/w/cpp/language/exceptions#Exception_safety
  * @exception ... Error throwed by move contructors.

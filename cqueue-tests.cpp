@@ -247,6 +247,21 @@ TEST_CASE("cqueue") {
     CHECK(queue.size() == 1);
   }
 
+  SECTION("full") {
+    cqueue<int> queue(5);
+    for (int i = 0; i < 5; i++) {
+      CHECK(!queue.full());
+      queue.push(i);
+    }
+    CHECK(queue.full());
+    queue.pop();
+    CHECK(!queue.full());
+    queue.push(9);
+    CHECK(queue.full());
+    queue.clear();
+    CHECK(!queue.full());
+  }
+
   SECTION("size") {
     cqueue<int> queue;
     CHECK(queue.empty());
