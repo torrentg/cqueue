@@ -9,14 +9,26 @@ using std::string;
 using gto::cqueue;
 
 template <class T>
-struct custom_allocator {
+struct custom_allocator
+{
   using propagate_on_container_swap = std::true_type;
   typedef T value_type;
+
   std::size_t numBytes = 0;
+
   custom_allocator() noexcept {}
+
   template <class U> custom_allocator (const custom_allocator<U>&) noexcept {}
-  T* allocate (std::size_t n) { numBytes += n*sizeof(T); return static_cast<T*>(::operator new(n*sizeof(T))); }
-  void deallocate (T* p, std::size_t n) { numBytes -= n*sizeof(T); ::delete(p); }
+
+  T* allocate (std::size_t n) { 
+    numBytes += n * sizeof(T);
+    return static_cast<T*>(::operator new(n * sizeof(T)));
+  }
+
+  void deallocate (T* p, std::size_t n) { 
+    numBytes -= n * sizeof(T); 
+    ::operator delete(p, n * sizeof(T));
+  }
 };
 
 template <class T, class U>
@@ -471,10 +483,10 @@ TEST_CASE("cqueue") {
     CHECK_THROWS(xqueue[0]);
     for (int i = 0; i < 10; i++) {
       queue.push(i);
-      CHECK(queue[static_cast<size_t>(i)] == i);
-      CHECK(xqueue[static_cast<size_t>(i)] == i);
-      CHECK_THROWS(queue[static_cast<size_t>(i) + 1]);
-      CHECK_THROWS(xqueue[static_cast<size_t>(i) + 1]);
+      CHECK(queue[static_cast<std::size_t>(i)] == i);
+      CHECK(xqueue[static_cast<std::size_t>(i)] == i);
+      CHECK_THROWS(queue[static_cast<std::size_t>(i) + 1]);
+      CHECK_THROWS(xqueue[static_cast<std::size_t>(i) + 1]);
     }
   }
 
@@ -904,7 +916,7 @@ TEST_CASE("cqueue") {
     CHECK(queue.reserved() == 8);
     queue.shrink_to_fit();  // not shrinked because len <= 8
     CHECK(queue.reserved() == 8);
-    for (size_t i = 2; i <= 12; i++) {
+    for (std::size_t i = 2; i <= 12; i++) {
       queue.push(static_cast<int>(i));
     }
     CHECK(queue.size() == 12);
@@ -912,7 +924,7 @@ TEST_CASE("cqueue") {
     queue.shrink_to_fit();  // shrink mem
     CHECK(queue.size() == 12);
     CHECK(queue.reserved() == 12);
-    for (size_t i = 0; i < 12; i++) {
+    for (std::size_t i = 0; i < 12; i++) {
       CHECK(queue[i] == static_cast<int>(i + 1));
     }
     queue.shrink_to_fit();  // already shrinked
@@ -1119,7 +1131,7 @@ TEST_CASE("cqueue") {
     CHECK(queue.size() == 9);
     CHECK(queue.reserved() == 16);
     for (int i = 0; i < 9; i++) {
-      CHECK(queue[static_cast<size_t>(i)] == i + 1);
+      CHECK(queue[static_cast<std::size_t>(i)] == i + 1);
     }
   }
 
@@ -1199,6 +1211,22 @@ TEST_CASE("cqueue") {
 
     CHECK(count == 5);
     CHECK(sum == 40);
+  }
+
+  SECTION("only-movable-elements") {
+    const std::size_t N = 33;
+    gto::cqueue<std::unique_ptr<int>> queue;
+    for (std::size_t i = 0; i < N; i++)
+      queue.push_back(std::make_unique<int>(i));
+    for (std::size_t i = 0; i < N; i++) {
+      REQUIRE(queue[i].get() != nullptr);
+      CHECK(*queue[i] == static_cast<int>(i));
+    }
+    for (std::size_t i = 0; i < N; i++) {
+      auto item = queue.pop();
+      REQUIRE(item.get() != nullptr);
+      CHECK(*item == static_cast<int>(i));
+    }
   }
 
 }

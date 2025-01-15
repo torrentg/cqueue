@@ -65,6 +65,10 @@
     "typeinfo": "cpp",
     "variant": "cpp",
     "ranges": "cpp",
-    "span": "cpp"
+    "span": "cpp",
+    "charconv": "cpp",
+    "unordered_set": "cpp",
+    "format": "cpp",
+    "text_encoding": "cpp"
   }
 }

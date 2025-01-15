@@ -7,7 +7,7 @@
 #define NUM_ITERATIONS 1000000
 #define BATCH_SIZE 20
 
-// g++ -std=c++20 -g -o cqueue-prof cqueue-prof.cpp
+// g++ -std=c++20 -g -O3 -o cqueue-prof cqueue-prof.cpp
 // valgrind --leak-check=full --show-leak-kinds=all ./cqueue-prof
 // valgrind --tool=massif --time-unit=B --threshold=0.0 ./cqueue-prof
 // ms_print --threshold=0.0 massif.out.1319585 > massif.out.cqueue

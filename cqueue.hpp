@@ -23,15 +23,15 @@ namespace gto {
  *          reserve(), shrink_to_fit(), reset() and clear().
  * 
  * @note This class is not thread-safe.
- * @version 1.0.7
+ * @version 1.0.8
  * 
  * @see https://en.wikipedia.org/wiki/Circular_buffer
  * @see https://github.com/torrentg/cqueue
  * 
- * @tparam T Items type.
- * @tparam Allocator Allocator.
+ * @tparam T Elements type (std::movable or std::copyable).
+ * @tparam Allocator Allocator type.
  */
-template<std::copyable T, typename Allocator = std::allocator<T>>
+template<std::movable T, typename Allocator = std::allocator<T>>
 class cqueue
 {
   private: // declarations
@@ -272,7 +272,7 @@ class cqueue
  * @param[in] capacity Container capacity.
  * @param[in] alloc Allocator to use.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_reference alloc) :
     mAllocator(alloc)
 {
@@ -286,7 +286,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(size_type capacity, const_alloc_refe
  * @param[in] other Queue to copy.
  * @param[in] alloc Allocator to use.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_reference alloc) : 
     mAllocator{alloc},
     mCapacity{other.mCapacity}
@@ -302,7 +302,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(const cqueue &other, const_alloc_ref
  * @param[in] other Queue to copy.
  * @param[in] alloc Allocator to use
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_reference alloc) {
   // use propagate_on_container_move_assignment !!!
   if (alloc == other.mAllocator) {
@@ -316,7 +316,7 @@ constexpr gto::cqueue<T, Allocator>::cqueue(cqueue &&other, const_alloc_referenc
 /**
  * @param[in] other Queue to copy.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::operator=(const cqueue &other) -> cqueue& {
   cqueue tmp(other);
   this->swap(tmp);
@@ -327,7 +327,7 @@ constexpr auto gto::cqueue<T, Allocator>::operator=(const cqueue &other) -> cque
  * @param[in] num Element position.
  * @return Index in buffer.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const noexcept {
   // case power of two (performance improvement x5)
   if (mReserved > 1 && (mReserved & (mReserved - 1)) == 0) {
@@ -342,7 +342,7 @@ constexpr auto gto::cqueue<T, Allocator>::getUncheckedIndex(size_type pos) const
  * @return Index in buffer.
  * @exception std::out_of_range Invalid position.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const noexcept(false) {
   if (pos >= mLength) {
     throw std::out_of_range("cqueue access out-of-range");
@@ -353,7 +353,7 @@ constexpr auto gto::cqueue<T, Allocator>::getCheckedIndex(size_type pos) const n
 /**
  * @details Remove all elements.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 void gto::cqueue<T, Allocator>::clear() noexcept {
   for (size_type i = 0; i < mLength; ++i) {
     size_type index = getUncheckedIndex(i);
@@ -366,7 +366,7 @@ void gto::cqueue<T, Allocator>::clear() noexcept {
 /**
  * @details Remove all elements and frees memory.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 void gto::cqueue<T, Allocator>::reset() noexcept {
   clear();
   allocator_traits::deallocate(mAllocator, mData, mReserved);
@@ -377,7 +377,7 @@ void gto::cqueue<T, Allocator>::reset() noexcept {
 /**
  * @details Swap content with another same-type cqueue.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
   if (&other != this) {
     if constexpr (allocator_traits::propagate_on_container_swap::value) {
@@ -398,7 +398,7 @@ constexpr void gto::cqueue<T, Allocator>::swap(cqueue &other) noexcept {
  * @brief Compute the new buffer size.
  * @param[in] n New queue size.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr auto gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const noexcept {
   size_type ret = (mReserved == 0 ? std::min(mCapacity, MIN_ALLOCATE) : mReserved);
   while (ret < n) {
@@ -412,7 +412,7 @@ constexpr auto gto::cqueue<T, Allocator>::getNewMemoryLength(size_type n) const 
  * @exception std::length_error Capacity exceeded.
  * @exception ... Error throwed by move contructors.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
   if (n <= mReserved) {
     [[likely]]
@@ -431,7 +431,7 @@ constexpr void gto::cqueue<T, Allocator>::resizeIfRequired(size_type n) {
  * @exception std::length_error Capacity exceeded.
  * @exception ... Error throwed by move contructors.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
   if (n <= mReserved) {
     return;
@@ -447,7 +447,7 @@ constexpr void gto::cqueue<T, Allocator>::reserve(size_type n) {
 /**
  * @exception ... Error throwed by move contructors.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
   if (mReserved == 0) {
     return;
@@ -468,7 +468,7 @@ constexpr void gto::cqueue<T, Allocator>::shrink_to_fit() {
  * @see https://en.cppreference.com/w/cpp/language/exceptions#Exception_safety
  * @exception ... Error throwed by move contructors.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 void gto::cqueue<T, Allocator>::resize(size_type len)
 {
   pointer tmp = allocator_traits::allocate(mAllocator, len);
@@ -516,7 +516,7 @@ void gto::cqueue<T, Allocator>::resize(size_type len)
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_back(const T &val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
@@ -528,7 +528,7 @@ constexpr void gto::cqueue<T, Allocator>::push_back(const T &val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_back(T &&val) {
   resizeIfRequired(mLength + 1);
   size_type index = getUncheckedIndex(mLength);
@@ -540,7 +540,7 @@ constexpr void gto::cqueue<T, Allocator>::push_back(T &&val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_front(const T &val) {
   resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
@@ -553,7 +553,7 @@ constexpr void gto::cqueue<T, Allocator>::push_front(const T &val) {
  * @param[in] val Value to add.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
   resizeIfRequired(mLength + 1);
   size_type index = (mLength == 0 ? 0 : (mFront == 0 ? mReserved : mFront) - 1);
@@ -567,7 +567,7 @@ constexpr void gto::cqueue<T, Allocator>::push_front(T &&val) {
  * @return Reference to emplaced object.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 template <class... Args>
 constexpr auto gto::cqueue<T, Allocator>::emplace_back(Args&&... args) -> reference {
   resizeIfRequired(mLength + 1);
@@ -582,7 +582,7 @@ constexpr auto gto::cqueue<T, Allocator>::emplace_back(Args&&... args) -> refere
  * @return Reference to emplaced object.
  * @exception std::length_error Number of values exceed queue capacity.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 template <class... Args>
 constexpr auto gto::cqueue<T, Allocator>::emplace_front(Args&&... args) -> reference {
   resizeIfRequired(mLength + 1);
@@ -597,7 +597,7 @@ constexpr auto gto::cqueue<T, Allocator>::emplace_front(Args&&... args) -> refer
  * @return true = an element was erased, false = no elements in the queue.
  * @exception std::out_of_range No elements to pop.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr typename gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_front() {
   value_type ret{std::move(front())};
   allocator_traits::destroy(mAllocator, mData + mFront);
@@ -610,7 +610,7 @@ constexpr typename gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocato
  * @return true = an element was erased, false = no elements in the queue.
  * @exception std::out_of_range No elements to pop.
  */
-template<std::copyable T, typename Allocator>
+template<std::movable T, typename Allocator>
 constexpr typename gto::cqueue<T, Allocator>::value_type gto::cqueue<T, Allocator>::pop_back() {
   value_type ret{std::move(back())};
   size_type index = getUncheckedIndex(mLength - 1);
